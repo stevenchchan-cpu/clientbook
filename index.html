@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ClientBook">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>ClientBook</title>
+<style>
+:root{
+  --bg:#f2f2f7; --card:#ffffff; --text:#111114; --muted:#6e6e73; --sep:#d8d8dd; --sep2:#c4c4c9;
+  --input:#e4e4e9; --press:#ececf0; --bar:rgba(242,242,247,.86);
+  --accent:#b3261e; --accent-soft:#f9e3e1; --danger:#d70015;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000; --card:#1c1c1e; --text:#f5f5f7; --muted:#98989f; --sep:#323236; --sep2:#48484c;
+    --input:#2c2c2e; --press:#2c2c2e; --bar:rgba(18,18,20,.86);
+    --accent:#ff6b5e; --accent-soft:#3a1714; --danger:#ff453a;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:17px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","PingFang HK","Microsoft JhengHei",sans-serif;
+  padding-bottom:calc(72px + env(safe-area-inset-bottom));min-height:100vh}
+body.locked{overflow:hidden}
+main{max-width:720px;margin:0 auto;padding:0 16px}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+svg{display:block}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:5;margin:0 -16px;padding:calc(env(safe-area-inset-top) + 6px) 16px 8px;
+  background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}
+.bar{display:flex;align-items:center;justify-content:space-between;min-height:44px;gap:8px}
+h1{font-size:32px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01em}
+.icon-btn{width:38px;height:38px;border-radius:19px;border:0;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;cursor:pointer;flex:none}
+.link-btn{background:none;border:0;color:var(--accent);font-size:17px;padding:8px 0;cursor:pointer}
+.link-btn:disabled{color:var(--muted);opacity:.6}
+.back{color:var(--accent);text-decoration:none;display:flex;align-items:center;font-size:17px;margin-left:-8px;padding:8px 0}
+
+/* search */
+.search{display:flex;align-items:center;gap:6px;background:var(--input);border-radius:10px;padding:0 10px;height:38px;margin-top:6px;color:var(--muted)}
+.search input{flex:1;border:0;background:transparent;font:inherit;font-size:17px;color:var(--text);outline:none;min-width:0;height:100%;padding:0}
+.search input::placeholder{color:var(--muted)}
+
+/* lists */
+.count,.sec-h{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;padding:14px 4px 0;display:flex;justify-content:space-between;align-items:center}
+.list{background:var(--card);border-radius:12px;overflow:hidden;margin:8px 0 12px}
+.row{display:flex;align-items:center;gap:12px;padding:10px 14px;min-height:58px;color:inherit;text-decoration:none;position:relative;width:100%;border:0;background:none;text-align:left;cursor:pointer}
+.row + .row::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep);transform:scaleY(.5);transform-origin:top}
+.row:active{background:var(--press)}
+.row:disabled{cursor:default}
+.row:disabled .main,.row:disabled .idb{opacity:.5}
+.idb{flex:none;min-width:60px;max-width:116px;padding:4px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent);
+  font:600 14px/1.25 ui-monospace,"SF Mono",Menlo,monospace;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.idb.lg{font-size:15px;padding:5px 10px;max-width:none;display:inline-block}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.name{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--sep2);flex:none}
+.tag{font-size:12px;color:var(--muted);background:var(--input);padding:2px 8px;border-radius:10px;flex:none}
+.ck{width:24px;height:24px;border-radius:12px;border:1.5px solid var(--sep2);display:grid;place-items:center;flex:none;color:#fff}
+.row.on .ck{background:var(--accent);border-color:var(--accent)}
+.row:disabled .ck{background:var(--sep2);border-color:var(--sep2)}
+.empty{text-align:center;color:var(--muted);padding:44px 20px;line-height:1.5}
+.empty b{display:block;color:var(--text);font-size:19px;margin-bottom:4px}
+.empty .primary{margin-top:18px;max-width:240px}
+
+/* detail */
+.hero{padding:4px 0 6px}
+.hero h1{margin-top:8px;font-size:28px}
+.meta{display:inline-flex;align-items:center;gap:6px;margin-top:6px;text-decoration:none;font-size:16px}
+.notes{margin:8px 0 0;color:var(--muted);font-size:15px;white-space:pre-wrap}
+.primary{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--accent);color:#fff;border:0;border-radius:12px;height:50px;font-weight:600;font-size:17px;width:100%;cursor:pointer;margin:10px 0 4px}
+.primary:active{opacity:.85}
+
+/* data page */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+.stat{background:var(--card);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:26px;font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--muted)}
+.help{font-size:13px;color:var(--muted);padding:6px 4px 0;line-height:1.5;margin:0}
+.help code{font-size:12px;color:var(--text)}
+.help.center{text-align:center;padding:16px 0}
+.row.act .name.red{color:var(--danger)}
+.tip{background:var(--accent-soft);color:var(--text);border-radius:12px;padding:12px 14px;font-size:14px;margin:10px 0}
+
+/* tab bar */
+.tabbar{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;background:var(--bar);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);
+  border-top:.5px solid var(--sep);padding-bottom:env(safe-area-inset-bottom);z-index:10}
+.tab{flex:1;max-width:200px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;font-size:11px;font-weight:500;color:var(--muted);text-decoration:none}
+.tab.on{color:var(--accent)}
+
+/* sheet */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.panel{background:var(--bg);width:100%;max-width:720px;max-height:92vh;max-height:92dvh;border-radius:14px 14px 0 0;display:flex;flex-direction:column;
+  animation:up .28s cubic-bezier(.2,.8,.2,1);padding-bottom:env(safe-area-inset-bottom)}
+.sh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:8px 16px;border-bottom:.5px solid var(--sep);gap:8px}
+.sh b{font-size:17px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56vw}
+.sh .l{justify-self:start}.sh .r{justify-self:end;font-weight:600}
+.sb{overflow:auto;padding:12px 16px 20px;-webkit-overflow-scrolling:touch;margin:0}
+.sb .search{margin:0 0 4px}
+.field{background:var(--card);border-radius:12px;overflow:hidden}
+.f{display:flex;align-items:center;padding:0 14px;min-height:48px;position:relative;gap:10px}
+.f + .f::before{content:"";position:absolute;top:0;left:14px;right:0;height:1px;background:var(--sep);transform:scaleY(.5)}
+.f > span{width:104px;flex:none}
+.f.fa{align-items:flex-start}
+.f.fa > span{padding-top:13px}
+.f input,.f textarea{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:17px;color:var(--text);outline:none;padding:13px 0;resize:none}
+.err{color:var(--danger);font-size:14px;padding:8px 4px 0;min-height:1em}
+.danger-btn{width:100%;height:48px;border:0;border-radius:12px;background:var(--card);color:var(--danger);font-size:17px;margin-top:16px;cursor:pointer}
+.sheet-note{font-size:14px;color:var(--muted);padding:10px 4px 0}
+
+#toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;background:rgba(28,28,30,.94);color:#fff;
+  padding:10px 16px;border-radius:20px;font-size:15px;transition:opacity .2s,transform .2s;z-index:30;pointer-events:none;max-width:88vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+</style>
+</head>
+<body>
+<main id="view"></main>
+<nav class="tabbar">
+  <a class="tab" data-tab="clients" href="#/clients">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.8a3.3 3.3 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></svg>
+    Clients</a>
+  <a class="tab" data-tab="stock" href="#/stock">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>
+    Stock</a>
+  <a class="tab" data-tab="data" href="#/data">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg>
+    Import / Export</a>
+</nav>
+<div id="sheet-root"></div>
+<div id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* ---------- storage ---------- */
+const KEY = 'clientbook-v1', LAST = 'clientbook-lastbackup';
+let db = load();
+
+function load(){
+  try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d && Array.isArray(d.clients) && Array.isArray(d.stock)) return normalizeDB(d); }catch(e){}
+  return {clients:[], stock:[]};
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ toast('Could not save — storage may be full'); }
+}
+function normalizeDB(d){
+  const s = x => String(x ?? '').trim();
+  const stock = [], clients = [], seenS = new Set(), seenC = new Set();
+  for(const x of d.stock || []){ const id = s(x.id); if(!id || seenS.has(id)) continue; seenS.add(id);
+    stock.push({id, name:s(x.name), unit:s(x.unit), notes:s(x.notes)}); }
+  for(const x of d.clients || []){ const id = s(x.id); if(!id || seenC.has(id)) continue; seenC.add(id);
+    const items = [], seen = new Set();
+    for(const i of Array.isArray(x.items) ? x.items : []){ const sid = s(i.stockId); if(!sid || seen.has(sid)) continue; seen.add(sid);
+      items.push({stockId:sid, note:s(i.note), added:s(i.added)}); }
+    clients.push({id, name:s(x.name), phone:s(x.phone), notes:s(x.notes), items}); }
+  return {clients, stock};
+}
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const view = $('#view');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cmp = (a,b) => String(a).localeCompare(String(b), undefined, {numeric:true, sensitivity:'base'});
+const byId = (a,b) => cmp(a.id, b.id);
+const getClient = id => db.clients.find(c => c.id === id);
+const getStock = id => db.stock.find(s => s.id === id);
+const plural = (n,w) => `${n} ${w}${n===1?'':'s'}`;
+const enc = encodeURIComponent;
+function match(q, ...fields){
+  const t = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if(!t.length) return true;
+  const hay = fields.join(' ').toLowerCase();
+  return t.every(x => hay.includes(x));
+}
+function localDate(d = new Date()){ const z = n => String(n).padStart(2,'0'); return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`; }
+function fmtDate(s){ if(!s) return ''; const d = new Date(s.length <= 10 ? s + 'T00:00:00' : s); if(isNaN(d)) return s;
+  return d.toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'}); }
+function nextId(list, prefix){
+  const ids = list.map(x => x.id).sort(cmp);
+  for(let i = ids.length - 1; i >= 0; i--){
+    const m = ids[i].match(/^(.*?)(\d+)$/);
+    if(m){ const cand = m[1] + String(+m[2] + 1).padStart(m[2].length, '0'); if(!list.some(x => x.id === cand)) return cand; }
+  }
+  let n = 1; while(list.some(x => x.id === prefix + String(n).padStart(3,'0'))) n++;
+  return prefix + String(n).padStart(3,'0');
+}
+let toastT;
+function toast(msg, ms = 2600){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
+
+const I = {
+  plus:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  search:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg>',
+  chev:'<svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>',
+  back:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"/></svg>',
+  check:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+  phone:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3.5h3.5l1.8 4.6-2.4 1.5a11 11 0 0 0 6.5 6.5l1.5-2.4 4.6 1.8V19a1.6 1.6 0 0 1-1.7 1.6A16.6 16.6 0 0 1 3.4 5.2 1.6 1.6 0 0 1 5 3.5z"/></svg>'
+};
+const searchBox = (id, ph, val) => `<div class="search">${I.search}<input id="${id}" type="search" placeholder="${esc(ph)}" value="${esc(val)}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></div>`;
+const topbar = (title, right = '', below = '') => `<header class="top"><div class="bar"><h1>${esc(title)}</h1>${right}</div>${below}</header>`;
+const backbar = (href, label, right = '') => `<header class="top"><div class="bar"><a class="back" href="${href}">${I.back}${esc(label)}</a>${right}</div></header>`;
+const emptyHTML = (title, text, btnId, btnLabel) => `<div class="empty"><b>${esc(title)}</b>${text}${btnId ? `<button class="primary" id="${btnId}">${I.plus} ${esc(btnLabel)}</button>` : ''}</div>`;
+
+/* ---------- router ---------- */
+const state = {qc:'', qs:''};
+const scrollMem = {};
+let curHash = '';
+function route(){
+  if(curHash) scrollMem[curHash] = window.scrollY;
+  closeSheet();
+  const h = location.hash.replace(/^#/, '') || '/clients';
+  curHash = h;
+  const [p, raw] = h.split('/').slice(1);
+  const id = raw !== undefined && raw !== '' ? decodeURIComponent(raw) : null;
+  if(p === 'client' && id !== null) viewClient(id);
+  else if(p === 'stock' && id !== null) viewStockItem(id);
+  else if(p === 'stock') viewStock();
+  else if(p === 'data') viewData();
+  else viewClients();
+  window.scrollTo(0, (h === '/clients' || h === '/stock' || h === '') ? (scrollMem[h] || 0) : 0);
+}
+function setTab(name){ document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name)); }
+window.addEventListener('hashchange', route);
+
+/* ---------- sheet ---------- */
+function openSheet(html){
+  const root = $('#sheet-root');
+  root.innerHTML = `<div class="ov"><div class="panel" role="dialog" aria-modal="true">${html}</div></div>`;
+  document.body.classList.add('locked');
+  root.querySelector('.ov').addEventListener('click', e => { if(e.target.classList.contains('ov') || e.target.closest('[data-x]')) closeSheet(); });
+}
+function closeSheet(){ $('#sheet-root').innerHTML = ''; document.body.classList.remove('locked'); }
+
+function formSheet({title, fields, saveLabel = 'Save', onSave, onDelete, deleteLabel = 'Delete', extra = ''}){
+  openSheet(`<div class="sh"><button class="link-btn l" data-x>Cancel</button><b>${esc(title)}</b><button class="link-btn r" id="fsave">${esc(saveLabel)}</button></div>
+  <form class="sb" id="fform" autocomplete="off"><div class="field">${fields.map(f => `<label class="f${f.area ? ' fa' : ''}"><span>${esc(f.label)}</span>${
+    f.area ? `<textarea name="${f.k}" rows="3" placeholder="${esc(f.ph || '')}">${esc(f.value)}</textarea>`
+           : `<input name="${f.k}" type="${f.type || 'text'}" value="${esc(f.value)}" placeholder="${esc(f.ph || '')}" autocapitalize="${f.ac || 'sentences'}" autocorrect="off" spellcheck="false" enterkeyhint="done">`
+  }</label>`).join('')}</div><div class="err" id="ferr"></div>${extra}${onDelete ? `<button type="button" class="danger-btn" id="fdel">${esc(deleteLabel)}</button>` : ''}<button type="submit" hidden></button></form>`);
+  const form = $('#fform');
+  const submit = e => { if(e) e.preventDefault(); const v = {}; fields.forEach(f => v[f.k] = form.elements[f.k].value.trim()); const err = onSave(v); if(err) $('#ferr').textContent = err; };
+  form.addEventListener('submit', submit);
+  $('#fsave').onclick = submit;
+  if(onDelete) $('#fdel').onclick = onDelete;
+}
+
+/* ---------- clients ---------- */
+function viewClients(){
+  setTab('clients');
+  view.innerHTML = topbar('Clients', `<button class="icon-btn" id="add" aria-label="Add client">${I.plus}</button>`, searchBox('q', 'Search customer ID or name', state.qc))
+    + `<div class="count" id="count"></div><div id="list"></div>`;
+  const draw = () => {
+    const rows = db.clients.filter(c => match(state.qc, c.id, c.name, c.phone)).sort(byId);
+    $('#count').textContent = !db.clients.length ? '' : state.qc ? `${rows.length} of ${plural(db.clients.length, 'client')}` : plural(db.clients.length, 'client');
+    $('#list').innerHTML = !db.clients.length
+      ? emptyHTML('No clients yet', 'Add your first client, or import a list<br>from the Import / Export tab.', 'addEmpty', 'Add client')
+      : !rows.length ? `<div class="empty">No clients match “${esc(state.qc)}”</div>`
+      : `<div class="list">${rows.map(c => `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span><span class="sub">${plural(c.items.length, 'item')}${c.phone ? ' · ' + esc(c.phone) : ''}</span></span>${I.chev}</a>`).join('')}</div>`;
+    const ae = $('#addEmpty'); if(ae) ae.onclick = () => clientForm(null);
+  };
+  $('#q').addEventListener('input', e => { state.qc = e.target.value; draw(); });
+  $('#add').onclick = () => clientForm(null);
+  draw();
+}
+
+function clientForm(c){
+  const isNew = !c;
+  formSheet({
+    title: isNew ? 'New client' : 'Edit client', saveLabel: isNew ? 'Add' : 'Save',
+    fields: [
+      {k:'id', label:'Customer ID', value: isNew ? nextId(db.clients, 'C') : c.id, ac:'characters'},
+      {k:'name', label:'Name', value: c?.name || '', ph:'Business name', ac:'words'},
+      {k:'phone', label:'Phone', value: c?.phone || '', type:'tel'},
+      {k:'notes', label:'Notes', value: c?.notes || '', area:true, ph:'Address, contact, delivery days…'}
+    ],
+    onSave: v => {
+      if(!v.id) return 'Customer ID is required';
+      if(!v.name) return 'Name is required';
+      const clash = getClient(v.id);
+      if(clash && clash !== c) return `Customer ID ${v.id} is already used by ${clash.name}`;
+      if(isNew){
+        db.clients.push({id:v.id, name:v.name, phone:v.phone, notes:v.notes, items:[]});
+        save(); toast('Client added'); location.hash = '#/client/' + enc(v.id);
+      } else {
+        const oldId = c.id; Object.assign(c, {id:v.id, name:v.name, phone:v.phone, notes:v.notes}); save(); toast('Saved');
+        if(oldId !== v.id) location.replace('#/client/' + enc(v.id)); else route();
+      }
+    },
+    onDelete: isNew ? null : () => {
+      if(!confirm(`Delete ${c.name} (${c.id})?\nTheir stock list will be removed too.`)) return;
+      db.clients = db.clients.filter(x => x !== c); save(); toast('Client deleted'); location.hash = '#/clients';
+    }
+  });
+}
+
+function viewClient(id){
+  setTab('clients');
+  const c = getClient(id);
+  if(!c){ view.innerHTML = backbar('#/clients', 'Clients') + `<div class="empty"><b>Client not found</b>It may have been deleted or renamed.</div>`; return; }
+  let q = '';
+  view.innerHTML = backbar('#/clients', 'Clients', `<button class="link-btn" id="edit">Edit</button>`)
+    + `<section class="hero"><span class="idb lg">${esc(c.id)}</span><h1>${esc(c.name || '(no name)')}</h1>`
+    + (c.phone ? `<a class="meta" href="tel:${esc(c.phone.replace(/[^\d+]/g, ''))}">${I.phone}${esc(c.phone)}</a>` : '')
+    + (c.notes ? `<p class="notes">${esc(c.notes)}</p>` : '') + `</section>`
+    + `<button class="primary" id="addStock">${I.plus} Add stock</button>`
+    + `<div class="sec-h"><span>Stock ordered · ${c.items.length}</span></div>`
+    + (c.items.length > 8 ? `<div style="margin-top:8px">${searchBox('qi', 'Filter this client’s stock', '')}</div>` : '')
+    + `<div id="items"></div>`;
+  const draw = () => {
+    const rows = c.items.map(it => ({it, s:getStock(it.stockId)}))
+      .filter(({it, s}) => match(q, it.stockId, s?.name, s?.unit, it.note))
+      .sort((a, b) => cmp(a.it.stockId, b.it.stockId));
+    $('#items').innerHTML = !c.items.length
+      ? `<div class="empty">No stock linked yet.<br>Tap <b style="display:inline;font-size:inherit">Add stock</b> to pick from your stock list.</div>`
+      : !rows.length ? `<div class="empty">Nothing matches “${esc(q)}”</div>`
+      : `<div class="list">${rows.map(({it, s}) => {
+          const sub = [s?.unit, it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
+          return `<button class="row" data-sid="${esc(it.stockId)}"><span class="idb">${esc(it.stockId)}</span><span class="main"><span class="name">${s ? esc(s.name || '(no name)') : '<i>Stock item deleted</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${I.chev}</button>`;
+        }).join('')}</div>`;
+  };
+  $('#edit').onclick = () => clientForm(c);
+  $('#addStock').onclick = () => pickStock(c);
+  const qi = $('#qi'); if(qi) qi.addEventListener('input', e => { q = e.target.value; draw(); });
+  $('#items').addEventListener('click', e => {
+    const r = e.target.closest('.row[data-sid]'); if(!r) return;
+    const it = c.items.find(i => i.stockId === r.dataset.sid); if(it) itemSheet(c, it);
+  });
+  draw();
+}
+
+function itemSheet(c, it){
+  const s = getStock(it.stockId);
+  formSheet({
+    title: s ? s.name || it.stockId : it.stockId,
+    fields: [{k:'note', label:'Note', value: it.note, area:true, ph:'e.g. 20 kg weekly, cut 1 cm, price agreed…'}],
+    extra: `<p class="sheet-note">Stock ID ${esc(it.stockId)}${s?.unit ? ' · ' + esc(s.unit) : ''}${it.added ? ' · added ' + fmtDate(it.added) : ''}${s ? ` · <a href="#/stock/${enc(s.id)}">View stock item</a>` : ''}</p>`,
+    onSave: v => { it.note = v.note; save(); route(); toast('Saved'); },
+    deleteLabel: 'Remove from this client',
+    onDelete: () => { c.items = c.items.filter(x => x !== it); save(); route(); toast('Removed'); }
+  });
+}
+
+function pickStock(c){
+  const have = new Set(c.items.map(i => i.stockId)), sel = new Set();
+  let q = '';
+  openSheet(`<div class="sh"><button class="link-btn l" data-x>Cancel</button><b>Add stock</b><button class="link-btn r" id="padd" disabled>Add</button></div>
+    <div class="sb">${searchBox('pq', 'Search stock ID or name', '')}<div id="plist"></div></div>`);
+  const btn = $('#padd');
+  const sync = () => { btn.disabled = !sel.size; btn.textContent = sel.size ? `Add (${sel.size})` : 'Add'; };
+  const draw = () => {
+    const rows = db.stock.filter(s => match(q, s.id, s.name, s.unit)).sort(byId);
+    $('#plist').innerHTML = !db.stock.length
+      ? `<div class="empty"><b>No stock items yet</b>Add items in the <a href="#/stock">Stock</a> tab first.</div>`
+      : !rows.length ? `<div class="empty">No stock matches “${esc(q)}”</div>`
+      : `<div class="list">${rows.map(s => { const h = have.has(s.id), on = sel.has(s.id);
+          return `<button class="row${on ? ' on' : ''}" data-id="${esc(s.id)}"${h ? ' disabled' : ''}><span class="ck">${on || h ? I.check : ''}</span><span class="idb">${esc(s.id)}</span><span class="main"><span class="name">${esc(s.name || '(no name)')}</span>${s.unit ? `<span class="sub">${esc(s.unit)}</span>` : ''}</span>${h ? '<span class="tag">Added</span>' : ''}</button>`;
+        }).join('')}</div>`;
+  };
+  $('#pq').addEventListener('input', e => { q = e.target.value; draw(); });
+  $('#plist').addEventListener('click', e => {
+    const r = e.target.closest('.row[data-id]'); if(!r || r.disabled) return;
+    const id = r.dataset.id;
+    if(sel.has(id)) sel.delete(id); else sel.add(id);
+    r.classList.toggle('on', sel.has(id)); r.querySelector('.ck').innerHTML = sel.has(id) ? I.check : '';
+    sync();
+  });
+  btn.onclick = () => {
+    const d = localDate();
+    sel.forEach(id => c.items.push({stockId:id, note:'', added:d}));
+    save(); const n = sel.size; route(); toast(`Added ${plural(n, 'item')}`);
+  };
+  draw();
+}
+
+/* ---------- stock ---------- */
+const usage = id => db.clients.filter(c => c.items.some(i => i.stockId === id));
+
+function viewStock(){
+  setTab('stock');
+  view.innerHTML = topbar('Stock', `<button class="icon-btn" id="add" aria-label="Add stock item">${I.plus}</button>`, searchBox('q', 'Search stock ID or name', state.qs))
+    + `<div class="count" id="count"></div><div id="list"></div>`;
+  const draw = () => {
+    const counts = {}; db.clients.forEach(c => c.items.forEach(i => counts[i.stockId] = (counts[i.stockId] || 0) + 1));
+    const rows = db.stock.filter(s => match(state.qs, s.id, s.name, s.unit)).sort(byId);
+    $('#count').textContent = !db.stock.length ? '' : state.qs ? `${rows.length} of ${plural(db.stock.length, 'item')}` : plural(db.stock.length, 'item');
+    $('#list').innerHTML = !db.stock.length
+      ? emptyHTML('No stock items yet', 'Add the products you sell, or import<br>a list from the Import / Export tab.', 'addEmpty', 'Add stock item')
+      : !rows.length ? `<div class="empty">No stock matches “${esc(state.qs)}”</div>`
+      : `<div class="list">${rows.map(s => { const n = counts[s.id] || 0;
+          return `<a class="row" href="#/stock/${enc(s.id)}"><span class="idb">${esc(s.id)}</span><span class="main"><span class="name">${esc(s.name || '(no name)')}</span><span class="sub">${[s.unit, n ? plural(n, 'client') : 'no clients yet'].filter(Boolean).map(esc).join(' · ')}</span></span>${I.chev}</a>`;
+        }).join('')}</div>`;
+    const ae = $('#addEmpty'); if(ae) ae.onclick = () => stockForm(null);
+  };
+  $('#q').addEventListener('input', e => { state.qs = e.target.value; draw(); });
+  $('#add').onclick = () => stockForm(null);
+  draw();
+}
+
+function stockForm(s){
+  const isNew = !s;
+  formSheet({
+    title: isNew ? 'New stock item' : 'Edit stock item', saveLabel: isNew ? 'Add' : 'Save',
+    fields: [
+      {k:'id', label:'Stock ID', value: isNew ? nextId(db.stock, 'S') : s.id, ac:'characters'},
+      {k:'name', label:'Name', value: s?.name || '', ph:'e.g. Beef shin (Brazil)'},
+      {k:'unit', label:'Unit', value: s?.unit || '', ph:'kg, box, carton…'},
+      {k:'notes', label:'Notes', value: s?.notes || '', area:true}
+    ],
+    onSave: v => {
+      if(!v.id) return 'Stock ID is required';
+      if(!v.name) return 'Name is required';
+      const clash = getStock(v.id);
+      if(clash && clash !== s) return `Stock ID ${v.id} is already used by ${clash.name}`;
+      if(isNew){
+        db.stock.push({id:v.id, name:v.name, unit:v.unit, notes:v.notes}); save(); route(); toast('Stock item added');
+      } else {
+        const oldId = s.id;
+        if(oldId !== v.id) db.clients.forEach(c => c.items.forEach(i => { if(i.stockId === oldId) i.stockId = v.id; }));
+        Object.assign(s, {id:v.id, name:v.name, unit:v.unit, notes:v.notes}); save(); toast('Saved');
+        if(oldId !== v.id && location.hash.startsWith('#/stock/')) location.replace('#/stock/' + enc(v.id)); else route();
+      }
+    },
+    onDelete: isNew ? null : () => {
+      const n = usage(s.id).length;
+      if(!confirm(`Delete ${s.name} (${s.id})?` + (n ? `\nIt will also be removed from ${plural(n, 'client')}.` : ''))) return;
+      db.stock = db.stock.filter(x => x !== s);
+      db.clients.forEach(c => c.items = c.items.filter(i => i.stockId !== s.id));
+      save(); toast('Stock item deleted'); location.hash = '#/stock';
+    }
+  });
+}
+
+function viewStockItem(id){
+  setTab('stock');
+  const s = getStock(id);
+  if(!s){ view.innerHTML = backbar('#/stock', 'Stock') + `<div class="empty"><b>Stock item not found</b>It may have been deleted or renamed.</div>`; return; }
+  const cl = usage(s.id).sort(byId);
+  view.innerHTML = backbar('#/stock', 'Stock', `<button class="link-btn" id="edit">Edit</button>`)
+    + `<section class="hero"><span class="idb lg">${esc(s.id)}</span><h1>${esc(s.name || '(no name)')}</h1>`
+    + (s.unit ? `<p class="notes">Unit: ${esc(s.unit)}</p>` : '') + (s.notes ? `<p class="notes">${esc(s.notes)}</p>` : '') + `</section>`
+    + `<div class="sec-h"><span>Ordered by · ${cl.length}</span></div>`
+    + (!cl.length ? `<div class="empty">No clients have this item yet.</div>`
+      : `<div class="list">${cl.map(c => { const it = c.items.find(i => i.stockId === s.id);
+          return `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span>${it.note ? `<span class="sub">${esc(it.note)}</span>` : ''}</span>${I.chev}</a>`;
+        }).join('')}</div>`);
+  $('#edit').onclick = () => stockForm(s);
+}
+
+/* ---------- import / export ---------- */
+const actRow = (a, name, sub, red) => `<button class="row act" data-a="${a}"><span class="main"><span class="name${red ? ' red' : ''}">${esc(name)}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ''}</span>${red ? '' : I.chev}</button>`;
+function getLast(){ try{ return localStorage.getItem(LAST); }catch(e){ return null; } }
+
+function viewData(){
+  setTab('data');
+  const nItems = db.clients.reduce((n, c) => n + c.items.length, 0);
+  const last = getLast();
+  const showTip = navigator.standalone === false && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  view.innerHTML = topbar('Import / Export')
+    + (showTip ? `<div class="tip"><b>Install on your iPhone:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>.</div>` : '')
+    + `<div class="stats"><div class="stat"><b>${db.clients.length}</b><span>Clients</span></div><div class="stat"><b>${db.stock.length}</b><span>Stock items</span></div><div class="stat"><b>${nItems}</b><span>Client–stock links</span></div></div>`
+    + `<p class="help">Data is saved on this device only. Last full backup: <b>${last ? fmtDate(last) : 'never'}</b>. Export a backup regularly and keep it in Files / iCloud Drive.</p>`
+    + `<div class="sec-h">Export</div><div class="list">`
+    + actRow('exp-json', 'Full backup', 'JSON · everything, restore on any device')
+    + actRow('exp-clients', 'Clients', 'CSV · opens in Excel or Numbers')
+    + actRow('exp-stock', 'Stock list', 'CSV')
+    + actRow('exp-orders', 'Client orders', 'CSV · one row per client + stock item')
+    + `</div><div class="sec-h">Import</div><div class="list">`
+    + actRow('imp-json', 'Restore full backup', 'JSON · replaces all current data')
+    + actRow('imp-clients', 'Import clients', 'CSV · adds new, updates matching IDs')
+    + actRow('imp-stock', 'Import stock', 'CSV · adds new, updates matching IDs')
+    + actRow('imp-orders', 'Import client orders', 'CSV · links stock items to clients')
+    + `</div><p class="help">CSV columns (first row must be headers):<br>
+      <b>Clients:</b> <code>customer_id, name, phone, notes</code><br>
+      <b>Stock:</b> <code>stock_id, name, unit, notes</code><br>
+      <b>Orders:</b> <code>customer_id, stock_id, note</code> — may also include <code>customer_name</code> and <code>stock_name</code>; any missing clients or stock items are created.<br>
+      Tip: export a CSV first to get a ready-made template.</p>`
+    + `<div class="sec-h">Other</div><div class="list">`
+    + (!db.clients.length && !db.stock.length ? actRow('demo', 'Load sample data', 'To try the app out') : '')
+    + actRow('wipe', 'Erase all data', '', true)
+    + `</div><p class="help center">ClientBook v1.0</p>
+      <input type="file" id="file" hidden accept=".csv,.json,.txt,text/csv,application/json,text/plain">`;
+
+  let pending = null;
+  const file = $('#file');
+  file.onchange = async () => {
+    const f = file.files[0]; if(!f) return;
+    let text; try{ text = await f.text(); }catch(e){ return toast('Could not read that file'); }
+    file.value = '';
+    try{ pending(text); }catch(e){ console.error(e); toast('Import failed: ' + e.message, 4000); }
+  };
+  const pick = fn => { pending = fn; file.value = ''; file.click(); };
+  const stamp = localDate().replace(/-/g, '');
+  const A = {
+    'exp-json': async () => { const ok = await saveFile(`clientbook-backup-${stamp}.json`, JSON.stringify({app:'ClientBook', version:1, exportedAt:new Date().toISOString(), ...db}, null, 2), 'application/json');
+      if(ok){ try{ localStorage.setItem(LAST, new Date().toISOString()); }catch(e){} route(); } },
+    'exp-clients': () => saveFile(`clientbook-clients-${stamp}.csv`, toCSV([['customer_id','name','phone','notes'], ...[...db.clients].sort(byId).map(c => [c.id, c.name, c.phone, c.notes])]), 'text/csv'),
+    'exp-stock': () => saveFile(`clientbook-stock-${stamp}.csv`, toCSV([['stock_id','name','unit','notes'], ...[...db.stock].sort(byId).map(s => [s.id, s.name, s.unit, s.notes])]), 'text/csv'),
+    'exp-orders': () => { const rows = [['customer_id','customer_name','stock_id','stock_name','unit','note','added']];
+      [...db.clients].sort(byId).forEach(c => [...c.items].sort((a, b) => cmp(a.stockId, b.stockId)).forEach(i => { const s = getStock(i.stockId); rows.push([c.id, c.name, i.stockId, s?.name, s?.unit, i.note, i.added]); }));
+      saveFile(`clientbook-orders-${stamp}.csv`, toCSV(rows), 'text/csv'); },
+    'imp-json': () => pick(importJSON),
+    'imp-clients': () => pick(t => importClients(readTable(t))),
+    'imp-stock': () => pick(t => importStock(readTable(t))),
+    'imp-orders': () => pick(t => importOrders(readTable(t))),
+    'demo': loadDemo,
+    'wipe': () => { if(!confirm('Erase ALL clients and stock from this device?\nThis cannot be undone — export a backup first if unsure.')) return;
+      db = {clients:[], stock:[]}; save(); route(); toast('All data erased'); }
+  };
+  view.querySelectorAll('[data-a]').forEach(b => b.onclick = () => A[b.dataset.a]());
+}
+
+async function saveFile(name, text, type){
+  const blob = new Blob([text], {type});
+  try{
+    const f = new File([blob], name, {type});
+    if(navigator.canShare && navigator.canShare({files:[f]})){
+      await navigator.share({files:[f]}); return true;
+    }
+  }catch(e){ if(e.name === 'AbortError') return false; }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return true;
+}
+
+const csvCell = v => { v = String(v ?? ''); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+const toCSV = rows => '﻿' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+
+function parseCSV(text){
+  text = text.replace(/^﻿/, '');
+  const first = text.split(/\r?\n/, 1)[0] || '';
+  const cnt = ch => first.split(ch).length - 1;
+  const d = cnt('\t') > cnt(',') && cnt('\t') >= cnt(';') ? '\t' : cnt(';') > cnt(',') ? ';' : ',';
+  const rows = []; let row = [], f = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i+1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if(c === '"') q = true;
+    else if(c === d){ row.push(f); f = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i+1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if(f !== '' || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim() !== ''));
+}
+const normH = s => String(s).toLowerCase().replace(/[^a-z0-9㐀-鿿]/g, '');
+function readTable(text){
+  const rows = parseCSV(text);
+  if(!rows.length) throw new Error('the file is empty');
+  return {head: rows[0].map(normH), rows: rows.slice(1)};
+}
+const col = (head, al) => { for(const a of al){ const i = head.indexOf(a); if(i >= 0) return i; } return -1; };
+const AL = {
+  cid: ['customerid','clientid','custid','customerno','clientno','customercode','clientcode','客戶編號','客户编号'],
+  sid: ['stockid','itemid','productid','stockcode','itemcode','productcode','sku','stockno','itemno','貨品編號','货品编号'],
+  cname: ['customername','clientname','customer','client','客戶名稱','客戶'],
+  sname: ['stockname','itemname','productname','item','product','description','貨品名稱','貨品'],
+  name: ['name','名稱'], phone: ['phone','tel','telephone','mobile','contact','電話'], unit: ['unit','uom','單位'],
+  notes: ['notes','note','remarks','remark','comment','comments','備註'], added: ['added','date','since']
+};
+const getter = r => i => i < 0 ? '' : String(r[i] ?? '').trim();
+
+function importClients(t){
+  const H = t.head, ci = col(H, [...AL.cid, 'id', 'code', 'no', '編號']), ni = col(H, [...AL.name, ...AL.cname]), pi = col(H, AL.phone), oi = col(H, AL.notes);
+  if(ci < 0) return toast('No customer ID column found. The first row should include "customer_id".', 4500);
+  let add = 0, upd = 0, skip = 0;
+  for(const r of t.rows){ const g = getter(r), id = g(ci); if(!id){ skip++; continue; }
+    const c = getClient(id);
+    if(c){ if(g(ni)) c.name = g(ni); if(g(pi)) c.phone = g(pi); if(g(oi)) c.notes = g(oi); upd++; }
+    else { db.clients.push({id, name:g(ni), phone:g(pi), notes:g(oi), items:[]}); add++; } }
+  save(); route(); toast(`Clients: ${add} added, ${upd} updated${skip ? `, ${skip} skipped (no ID)` : ''}`, 4000);
+}
+function importStock(t){
+  const H = t.head, si = col(H, [...AL.sid, 'id', 'code', 'no', '編號']), ni = col(H, [...AL.name, ...AL.sname]), ui = col(H, AL.unit), oi = col(H, AL.notes);
+  if(si < 0) return toast('No stock ID column found. The first row should include "stock_id".', 4500);
+  let add = 0, upd = 0, skip = 0;
+  for(const r of t.rows){ const g = getter(r), id = g(si); if(!id){ skip++; continue; }
+    const s = getStock(id);
+    if(s){ if(g(ni)) s.name = g(ni); if(g(ui)) s.unit = g(ui); if(g(oi)) s.notes = g(oi); upd++; }
+    else { db.stock.push({id, name:g(ni), unit:g(ui), notes:g(oi)}); add++; } }
+  save(); route(); toast(`Stock: ${add} added, ${upd} updated${skip ? `, ${skip} skipped (no ID)` : ''}`, 4000);
+}
+function importOrders(t){
+  const H = t.head, ci = col(H, AL.cid), si = col(H, AL.sid), cn = col(H, AL.cname), sn = col(H, AL.sname), ui = col(H, AL.unit), ni = col(H, AL.notes), di = col(H, AL.added);
+  if(ci < 0 || si < 0) return toast('Need both "customer_id" and "stock_id" columns in the first row.', 4500);
+  let link = 0, dup = 0, newC = 0, newS = 0, skip = 0;
+  const cMap = new Map(db.clients.map(c => [c.id, c])), sMap = new Map(db.stock.map(s => [s.id, s]));
+  for(const r of t.rows){ const g = getter(r), cid = g(ci), sid = g(si); if(!cid || !sid){ skip++; continue; }
+    let c = cMap.get(cid); if(!c){ c = {id:cid, name:g(cn), phone:'', notes:'', items:[]}; db.clients.push(c); cMap.set(cid, c); newC++; } else if(!c.name && g(cn)) c.name = g(cn);
+    let s = sMap.get(sid); if(!s){ s = {id:sid, name:g(sn), unit:g(ui), notes:''}; db.stock.push(s); sMap.set(sid, s); newS++; }
+    const ex = c.items.find(i => i.stockId === sid);
+    if(ex){ dup++; if(g(ni)) ex.note = g(ni); }
+    else { c.items.push({stockId:sid, note:g(ni), added:g(di) || localDate()}); link++; } }
+  save(); route();
+  toast(`Orders: ${link} linked${dup ? `, ${dup} already there` : ''}${newC ? `, ${newC} new clients` : ''}${newS ? `, ${newS} new stock` : ''}${skip ? `, ${skip} skipped` : ''}`, 4500);
+}
+function importJSON(text){
+  let d; try{ d = JSON.parse(text.replace(/^﻿/, '')); }catch(e){ return toast('That is not a valid backup file'); }
+  if(!d || !Array.isArray(d.clients) || !Array.isArray(d.stock)) return toast('That is not a ClientBook backup');
+  const clean = normalizeDB(d);
+  if(!confirm(`Replace current data (${plural(db.clients.length, 'client')}, ${plural(db.stock.length, 'stock item')})\nwith this backup (${plural(clean.clients.length, 'client')}, ${plural(clean.stock.length, 'stock item')})?`)) return;
+  db = clean; save(); route(); toast('Backup restored');
+}
+
+function loadDemo(){
+  const d = localDate();
+  db = normalizeDB({
+    stock: [
+      ['S001','Beef shin (Brazil)','kg'],['S002','Beef brisket (Australia)','kg'],['S003','Sliced beef for hotpot','kg'],
+      ['S004','Beef tripe (omasum)','kg'],['S005','Chicken feet','10 kg box'],['S006','Chicken mid-joint wings','kg'],
+      ['S007','Chicken thigh, boneless','kg'],['S008','Goat leg (Australia)','kg'],['S009','Minced beef','kg'],['S010','Beef tendon','kg']
+    ].map(([id, name, unit]) => ({id, name, unit})),
+    clients: [
+      {id:'C001', name:'Golden Pot Hotpot', phone:'2345 6789', items:['S003','S004','S010','S005'].map(s => ({stockId:s, added:d}))},
+      {id:'C002', name:'Sunrise Cha Chaan Teng', phone:'2876 5432', items:['S007','S009','S006'].map(s => ({stockId:s, added:d, note: s === 'S006' ? '20 kg weekly' : ''}))},
+      {id:'C003', name:'Harbour View Cantonese Restaurant', items:['S001','S002','S010','S008'].map(s => ({stockId:s, added:d}))},
+      {id:'C004', name:'Lucky Star Wholesale', items:['S005','S006','S001'].map(s => ({stockId:s, added:d}))},
+      {id:'C005', name:'Kowloon Noodle House', items:['S002','S004'].map(s => ({stockId:s, added:d}))}
+    ]
+  });
+  save(); location.hash = '#/clients'; route(); toast('Sample data loaded');
+}
+
+/* ---------- start ---------- */
+route();
+if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
