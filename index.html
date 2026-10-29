@@ -84,7 +84,8 @@ h1{font-size:32px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01e
 .idrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .idrow .chips{margin-top:0;justify-content:flex-end}
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
-.btn2 .primary{margin:0}
+.btn2 .primary{margin:0;height:38px;font-size:15px;border-radius:10px;gap:4px}
+.btn2 .primary svg{width:16px;height:16px}
 .primary.alt{background:var(--accent-soft);color:var(--accent)}
 .idb.pr{background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent);position:relative;isolation:isolate;overflow:hidden;min-width:72px;min-height:38px;display:inline-flex;align-items:center;justify-content:center}
 .idb.pr::after{content:"PROMO";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-27deg);z-index:-1;
@@ -353,7 +354,7 @@ function viewClients(){
     $('#list').innerHTML = !db.clients.length
       ? emptyHTML('No clients yet', 'Add your first client, or import a list<br>from the Import / Export tab.', 'addEmpty', 'Add client')
       : !rows.length ? `<div class="empty">No clients ${state.day !== null ? `with delivery on ${DAYS[state.day]}` : ''}${state.qc ? ` matching “${esc(state.qc)}”` : ''}</div>`
-      : `<div class="list">${rows.map(c => `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span><span class="sub">${[plural(c.items.length, 'item'), c.promos.length ? plural(c.promos.length, 'promo') : '', fmtDays(c.days), c.phone].filter(Boolean).map(esc).join(' · ')}</span></span>${I.chev}</a>`).join('')}</div>`;
+      : `<div class="list">${rows.map(c => `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span><span class="sub">${[plural(c.items.length, 'item'), (n => n ? plural(n, 'promo') : '')(c.promos.filter(i => getPromo(i.promoId)?.active).length), fmtDays(c.days), c.phone].filter(Boolean).map(esc).join(' · ')}</span></span>${I.chev}</a>`).join('')}</div>`;
     const ae = $('#addEmpty'); if(ae) ae.onclick = () => clientForm(null);
   };
   $('#q').addEventListener('input', e => { state.qc = e.target.value; draw(); });
@@ -401,7 +402,8 @@ function viewClient(id){
   if(!c){ view.innerHTML = backbar('#/clients', 'Clients') + `<div class="empty"><b>Client not found</b>It may have been deleted or renamed.</div>`; return; }
   let q = '';
   const dayChips = c.days.length ? `<div class="chips">${c.days.length === 7 ? '<span class="chip">Daily</span>' : c.days.map(i => `<span class="chip">${DAYS[i]}</span>`).join('')}</div>` : '';
-  const prs = c.promos.map(it => ({it, p:getPromo(it.promoId)})).sort((a, b) => cmp(a.it.promoId, b.it.promoId));
+  // inactive promos stay linked to the client but are hidden until switched back on
+  const prs = c.promos.map(it => ({it, p:getPromo(it.promoId)})).filter(x => x.p && x.p.active).sort((a, b) => cmp(a.it.promoId, b.it.promoId));
   view.innerHTML = backbar('#/clients', 'Clients', `<button class="link-btn" id="edit">Edit</button>`)
     + `<section class="hero"><div class="idrow"><span class="idb lg">${esc(c.id)}</span>${dayChips}</div><h1>${esc(c.name || '(no name)')}</h1>`
     + (c.phone ? `<a class="meta" href="tel:${esc(c.phone.replace(/[^\d+]/g, ''))}">${I.phone}${esc(c.phone)}</a>` : '')
