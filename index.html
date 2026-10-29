@@ -86,7 +86,11 @@ h1{font-size:32px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01e
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
 .btn2 .primary{margin:0}
 .primary.alt{background:var(--accent-soft);color:var(--accent)}
-.idb.pr{background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.idb.pr{background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent);position:relative;isolation:isolate;overflow:hidden;min-width:72px;min-height:38px;display:inline-flex;align-items:center;justify-content:center}
+.idb.pr::after{content:"PROMO";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(-27deg);z-index:-1;
+  font:900 13px/1 -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;letter-spacing:.04em;color:var(--accent);opacity:.26;pointer-events:none;white-space:nowrap}
+.idb.lg.pr{min-height:40px;min-width:84px}
+.idb.lg.pr::after{font-size:14px}
 .empty.sm{padding:14px 20px;font-size:15px;background:var(--card);border-radius:12px;margin:8px 0 12px}
 .dayf.seg{grid-template-columns:repeat(3,1fr)}
 .sw{width:51px;height:31px;border-radius:16px;background:var(--sep2);position:relative;flex:none;transition:background .2s;border:0;padding:0;cursor:pointer;display:block}
@@ -403,22 +407,21 @@ function viewClient(id){
     + (c.phone ? `<a class="meta" href="tel:${esc(c.phone.replace(/[^\d+]/g, ''))}">${I.phone}${esc(c.phone)}</a>` : '')
     + (c.notes ? `<p class="notes">${esc(c.notes)}</p>` : '') + `</section>`
     + `<div class="btn2"><button class="primary" id="addStock">${I.plus} Add stock</button><button class="primary alt" id="addPromo">${I.plus} Add promo</button></div>`
-    + `<div class="sec-h"><span>Promos · ${prs.length}</span></div>`
-    + (prs.length ? `<div class="list" id="promos">${prs.map(({it, p}) => {
-        const sub = [p ? plural(p.stockIds.length, 'stock item') : '', it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
-        return `<button class="row" data-pid="${esc(it.promoId)}"><span class="idb pr">${esc(it.promoId)}</span><span class="main"><span class="name">${p ? esc(p.name || '(no name)') : '<i>Promo deleted</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${p && !p.active ? '<span class="tag">Inactive</span>' : ''}${I.chev}</button>`;
-      }).join('')}</div>` : `<div class="empty sm">No promos for this client.</div>`)
-    + `<div class="sec-h"><span>Stock ordered · ${c.items.length}</span></div>`
-    + (c.items.length > 8 ? `<div style="margin-top:8px">${searchBox('qi', 'Filter this client’s stock', '')}</div>` : '')
+    + `<div class="sec-h"><span>Ordered · ${[prs.length ? plural(prs.length, 'promo') : '', plural(c.items.length, 'stock item')].filter(Boolean).join(' · ')}</span></div>`
+    + (prs.length + c.items.length > 8 ? `<div style="margin-top:8px">${searchBox('qi', 'Filter this client’s list', '')}</div>` : '')
     + `<div id="items"></div>`;
   const draw = () => {
-    const rows = c.items.map(it => ({it, s:getStock(it.stockId)}))
+    const pRows = prs.filter(({it, p}) => match(q, 'promo', it.promoId, p?.name, it.note));
+    const sRows = c.items.map(it => ({it, s:getStock(it.stockId)}))
       .filter(({it, s}) => match(q, it.stockId, s?.name, s?.brand, s?.unit, it.note))
       .sort((a, b) => cmp(a.it.stockId, b.it.stockId));
-    $('#items').innerHTML = !c.items.length
-      ? `<div class="empty sm">No stock linked yet. Tap <b style="display:inline;font-size:inherit">Add stock</b> to pick from your stock list.</div>`
-      : !rows.length ? `<div class="empty">Nothing matches “${esc(q)}”</div>`
-      : `<div class="list">${rows.map(({it, s}) => {
+    $('#items').innerHTML = !c.items.length && !prs.length
+      ? `<div class="empty sm">Nothing yet. Tap <b style="display:inline;font-size:inherit">Add stock</b> or <b style="display:inline;font-size:inherit">Add promo</b>.</div>`
+      : !pRows.length && !sRows.length ? `<div class="empty">Nothing matches “${esc(q)}”</div>`
+      : `<div class="list">${pRows.map(({it, p}) => {
+          const sub = [p ? plural(p.stockIds.length, 'stock item') : '', it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
+          return `<button class="row" data-pid="${esc(it.promoId)}"><span class="idb pr">${esc(it.promoId)}</span><span class="main"><span class="name">${p ? esc(p.name || '(no name)') : '<i>Promo deleted</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${p && !p.active ? '<span class="tag">Inactive</span>' : ''}${I.chev}</button>`;
+        }).join('')}${sRows.map(({it, s}) => {
           const sub = [s?.brand, s?.unit, it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
           return `<button class="row" data-sid="${esc(it.stockId)}"><span class="idb">${esc(it.stockId)}</span><span class="main"><span class="name">${s ? esc(s.name || '(no name)') : '<i>Stock item deleted</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${I.chev}</button>`;
         }).join('')}</div>`;
@@ -428,12 +431,9 @@ function viewClient(id){
   $('#addPromo').onclick = () => pickPromo(c);
   const qi = $('#qi'); if(qi) qi.addEventListener('input', e => { q = e.target.value; draw(); });
   $('#items').addEventListener('click', e => {
-    const r = e.target.closest('.row[data-sid]'); if(!r) return;
-    const it = c.items.find(i => i.stockId === r.dataset.sid); if(it) itemSheet(c, it);
-  });
-  const pl = $('#promos'); if(pl) pl.addEventListener('click', e => {
-    const r = e.target.closest('.row[data-pid]'); if(!r) return;
-    const it = c.promos.find(i => i.promoId === r.dataset.pid); if(it) clientPromoSheet(c, it);
+    const r = e.target.closest('.row[data-sid], .row[data-pid]'); if(!r) return;
+    if(r.dataset.pid !== undefined){ const it = c.promos.find(i => i.promoId === r.dataset.pid); if(it) clientPromoSheet(c, it); }
+    else { const it = c.items.find(i => i.stockId === r.dataset.sid); if(it) itemSheet(c, it); }
   });
   draw();
 }
@@ -713,7 +713,7 @@ function viewData(){
     + `<div class="sec-h">Other</div><div class="list">`
     + (!db.clients.length && !db.stock.length && !db.promos.length ? actRow('demo', 'Load sample data', 'To try the app out') : '')
     + actRow('wipe', 'Erase all data', '', true)
-    + `</div><p class="help center">ClientBook v1.2</p>
+    + `</div><p class="help center">ClientBook v1.3</p>
       <input type="file" id="file" hidden accept=".csv,.json,.txt,text/csv,application/json,text/plain">`;
 
   let pending = null;

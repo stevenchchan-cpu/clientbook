@@ -4,7 +4,7 @@ A simple iPhone app for keeping a list of clients and the stock each client orde
 
 - **Clients** – list sorted by customer ID, with search (ID, name or phone) and a delivery-day filter (Mon–Sun). Tap a client to see every stock item they order, add more from your stock list, and add a note per item (e.g. "20 kg weekly").
 - **Stock** – list sorted by stock ID (with brand and unit), with search. Tap an item to see which clients order it.
-- **Promo** – list of promos with an Active / Inactive switch. Each promo holds the stock items that can be used for it. Add a promo to a client from the client's page (only active promos are offered); the client's page lists promos first, then stock.
+- **Promo** – list of promos with an Active / Inactive switch. Each promo holds the stock items that can be used for it. Add a promo to a client from the client's page (only active promos are offered); the client's page shows one list: promos first, then stock.
 - **Import / Export** – full backup/restore (JSON) and CSV import/export for clients, stock and client orders (opens in Excel / Numbers; Chinese text supported).
 
 Works offline. Data is stored on the phone itself, so export a full backup regularly.
