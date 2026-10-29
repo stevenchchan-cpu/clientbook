@@ -81,6 +81,22 @@ h1{font-size:32px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01e
 .days button{height:36px}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
 .chip{font-size:13px;font-weight:600;padding:3px 9px;border-radius:9px;background:var(--accent-soft);color:var(--accent)}
+.idrow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.idrow .chips{margin-top:0;justify-content:flex-end}
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0 4px}
+.btn2 .primary{margin:0}
+.primary.alt{background:var(--accent-soft);color:var(--accent)}
+.idb.pr{background:transparent;box-shadow:inset 0 0 0 1.5px var(--accent)}
+.empty.sm{padding:14px 20px;font-size:15px;background:var(--card);border-radius:12px;margin:8px 0 12px}
+.dayf.seg{grid-template-columns:repeat(3,1fr)}
+.sw{width:51px;height:31px;border-radius:16px;background:var(--sep2);position:relative;flex:none;transition:background .2s;border:0;padding:0;cursor:pointer;display:block}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform .2s}
+.sw.on{background:var(--accent)}
+.sw.on::after{transform:translateX(20px)}
+.swl{display:flex;align-items:center;gap:8px;border:0;background:none;padding:0;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer}
+.swl.on{color:var(--accent)}
+.mini{margin:10px 0 0}
+.mini .row{min-height:46px;cursor:default}
 .row.on .ck{background:var(--accent);border-color:var(--accent)}
 .row:disabled .ck{background:var(--sep2);border-color:var(--sep2)}
 .empty{text-align:center;color:var(--muted);padding:44px 20px;line-height:1.5}
@@ -149,6 +165,9 @@ h1{font-size:32px;line-height:1.15;font-weight:700;margin:0;letter-spacing:-.01e
   <a class="tab" data-tab="stock" href="#/stock">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5 12 3 3 7.5v9L12 21l9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></svg>
     Stock</a>
+  <a class="tab" data-tab="promo" href="#/promo">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12.2V4.5A1.5 1.5 0 0 1 4.5 3h7.7a1.5 1.5 0 0 1 1 .44l7.4 7.4a1.5 1.5 0 0 1 0 2.12l-7.7 7.7a1.5 1.5 0 0 1-2.12 0l-7.4-7.4a1.5 1.5 0 0 1-.38-1.06z"/><circle cx="8" cy="8" r="1.6"/></svg>
+    Promo</a>
   <a class="tab" data-tab="data" href="#/data">
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v14M3 14l4 4 4-4M17 20V6M13 10l4-4 4 4"/></svg>
     Import / Export</a>
@@ -164,7 +183,7 @@ let db = load();
 
 function load(){
   try{ const d = JSON.parse(localStorage.getItem(KEY)); if(d && Array.isArray(d.clients) && Array.isArray(d.stock)) return normalizeDB(d); }catch(e){}
-  return {v:2, clients:[], stock:[]};
+  return {v:2, clients:[], stock:[], promos:[]};
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(db)); }catch(e){ toast('Could not save — storage may be full'); }
@@ -180,8 +199,14 @@ function normalizeDB(d){
     const items = [], seen = new Set();
     for(const i of Array.isArray(x.items) ? x.items : []){ const sid = s(i.stockId); if(!sid || seen.has(sid)) continue; seen.add(sid);
       items.push({stockId:sid, note:s(i.note), added:s(i.added)}); }
-    clients.push({id, name:s(x.name), phone:s(x.phone), days:cleanDays(x.days), notes:s(x.notes), items}); }
-  return {v:2, clients, stock};
+    const prs = [], seenPr = new Set();
+    for(const i of Array.isArray(x.promos) ? x.promos : []){ const pid = s(i.promoId); if(!pid || seenPr.has(pid)) continue; seenPr.add(pid);
+      prs.push({promoId:pid, note:s(i.note), added:s(i.added)}); }
+    clients.push({id, name:s(x.name), phone:s(x.phone), days:cleanDays(x.days), notes:s(x.notes), items, promos:prs}); }
+  const promos = [], seenP = new Set();
+  for(const x of Array.isArray(d.promos) ? d.promos : []){ const id = s(x.id); if(!id || seenP.has(id)) continue; seenP.add(id);
+    promos.push({id, name:s(x.name), active: x.active !== false, stockIds:[...new Set((Array.isArray(x.stockIds) ? x.stockIds : []).map(s).filter(Boolean))], notes:s(x.notes)}); }
+  return {v:2, clients, stock, promos};
 }
 function cleanDays(a){ return Array.isArray(a) ? [...new Set(a.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort() : []; }
 try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
@@ -194,6 +219,8 @@ const cmp = (a,b) => String(a).localeCompare(String(b), undefined, {numeric:true
 const byId = (a,b) => cmp(a.id, b.id);
 const getClient = id => db.clients.find(c => c.id === id);
 const getStock = id => db.stock.find(s => s.id === id);
+const getPromo = id => db.promos.find(p => p.id === id);
+const stockSub = s => [s.brand, s.unit].filter(Boolean).join(' · ');
 const plural = (n,w) => `${n} ${w}${n===1?'':'s'}`;
 const enc = encodeURIComponent;
 function match(q, ...fields){
@@ -256,7 +283,7 @@ const backbar = (href, label, right = '') => `<header class="top"><div class="ba
 const emptyHTML = (title, text, btnId, btnLabel) => `<div class="empty"><b>${esc(title)}</b>${text}${btnId ? `<button class="primary" id="${btnId}">${I.plus} ${esc(btnLabel)}</button>` : ''}</div>`;
 
 /* ---------- router ---------- */
-const state = {qc:'', qs:'', day:null};
+const state = {qc:'', qs:'', qp:'', pf:'all', day:null};
 const scrollMem = {};
 let curHash = '';
 function route(){
@@ -269,9 +296,11 @@ function route(){
   if(p === 'client' && id !== null) viewClient(id);
   else if(p === 'stock' && id !== null) viewStockItem(id);
   else if(p === 'stock') viewStock();
+  else if(p === 'promo' && id !== null) viewPromo(id);
+  else if(p === 'promo') viewPromos();
   else if(p === 'data') viewData();
   else viewClients();
-  window.scrollTo(0, (h === '/clients' || h === '/stock' || h === '') ? (scrollMem[h] || 0) : 0);
+  window.scrollTo(0, (h === '/clients' || h === '/stock' || h === '/promo' || h === '') ? (scrollMem[h] || 0) : 0);
 }
 function setTab(name){ document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === name)); }
 window.addEventListener('hashchange', route);
@@ -287,7 +316,9 @@ function closeSheet(){ $('#sheet-root').innerHTML = ''; document.body.classList.
 
 function formSheet({title, fields, saveLabel = 'Save', onSave, onDelete, deleteLabel = 'Delete', extra = ''}){
   openSheet(`<div class="sh"><button class="link-btn l" data-x>Cancel</button><b>${esc(title)}</b><button class="link-btn r" id="fsave">${esc(saveLabel)}</button></div>
-  <form class="sb" id="fform" autocomplete="off"><div class="field">${fields.map(f => f.days
+  <form class="sb" id="fform" autocomplete="off"><div class="field">${fields.map(f => f.toggle
+    ? `<div class="f"><span>${esc(f.label)}</span><span style="flex:1"></span><button type="button" class="sw${f.value ? ' on' : ''}" data-sw="${f.k}" role="switch" aria-label="${esc(f.label)}"></button></div>`
+    : f.days
     ? `<div class="f fd"><span>${esc(f.label)}</span><div class="days" data-k="${f.k}">${DAYS.map((d, i) => `<button type="button" data-i="${i}" class="${f.value.includes(i) ? 'on' : ''}">${d}</button>`).join('')}</div></div>`
     : `<label class="f${f.area ? ' fa' : ''}"><span>${esc(f.label)}</span>${
     f.area ? `<textarea name="${f.k}" rows="3" placeholder="${esc(f.ph || '')}">${esc(f.value)}</textarea>`
@@ -295,9 +326,10 @@ function formSheet({title, fields, saveLabel = 'Save', onSave, onDelete, deleteL
   }</label>`).join('')}</div><div class="err" id="ferr"></div>${extra}${onDelete ? `<button type="button" class="danger-btn" id="fdel">${esc(deleteLabel)}</button>` : ''}<button type="submit" hidden></button></form>`);
   const form = $('#fform');
   const submit = e => { if(e) e.preventDefault(); const v = {};
-    fields.forEach(f => v[f.k] = f.days ? [...form.querySelectorAll(`.days[data-k="${f.k}"] .on`)].map(b => +b.dataset.i) : form.elements[f.k].value.trim());
+    fields.forEach(f => v[f.k] = f.toggle ? form.querySelector(`[data-sw="${f.k}"]`).classList.contains('on')
+      : f.days ? [...form.querySelectorAll(`.days[data-k="${f.k}"] .on`)].map(b => +b.dataset.i) : form.elements[f.k].value.trim());
     const err = onSave(v); if(err) $('#ferr').textContent = err; };
-  form.addEventListener('click', e => { const b = e.target.closest('.days button'); if(b) b.classList.toggle('on'); });
+  form.addEventListener('click', e => { const b = e.target.closest('.days button, [data-sw]'); if(b) b.classList.toggle('on'); });
   form.addEventListener('submit', submit);
   $('#fsave').onclick = submit;
   if(onDelete) $('#fdel').onclick = onDelete;
@@ -317,7 +349,7 @@ function viewClients(){
     $('#list').innerHTML = !db.clients.length
       ? emptyHTML('No clients yet', 'Add your first client, or import a list<br>from the Import / Export tab.', 'addEmpty', 'Add client')
       : !rows.length ? `<div class="empty">No clients ${state.day !== null ? `with delivery on ${DAYS[state.day]}` : ''}${state.qc ? ` matching “${esc(state.qc)}”` : ''}</div>`
-      : `<div class="list">${rows.map(c => `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span><span class="sub">${[plural(c.items.length, 'item'), fmtDays(c.days), c.phone].filter(Boolean).map(esc).join(' · ')}</span></span>${I.chev}</a>`).join('')}</div>`;
+      : `<div class="list">${rows.map(c => `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span><span class="sub">${[plural(c.items.length, 'item'), c.promos.length ? plural(c.promos.length, 'promo') : '', fmtDays(c.days), c.phone].filter(Boolean).map(esc).join(' · ')}</span></span>${I.chev}</a>`).join('')}</div>`;
     const ae = $('#addEmpty'); if(ae) ae.onclick = () => clientForm(null);
   };
   $('#q').addEventListener('input', e => { state.qc = e.target.value; draw(); });
@@ -345,7 +377,7 @@ function clientForm(c){
       const clash = getClient(v.id);
       if(clash && clash !== c) return `Customer ID ${v.id} is already used by ${clash.name}`;
       if(isNew){
-        db.clients.push({id:v.id, name:v.name, phone:v.phone, days:cleanDays(v.days), notes:v.notes, items:[]});
+        db.clients.push({id:v.id, name:v.name, phone:v.phone, days:cleanDays(v.days), notes:v.notes, items:[], promos:[]});
         save(); toast('Client added'); location.hash = '#/client/' + enc(v.id);
       } else {
         const oldId = c.id; Object.assign(c, {id:v.id, name:v.name, phone:v.phone, days:cleanDays(v.days), notes:v.notes}); save(); toast('Saved');
@@ -353,7 +385,7 @@ function clientForm(c){
       }
     },
     onDelete: isNew ? null : () => {
-      if(!confirm(`Delete ${c.name} (${c.id})?\nTheir stock list will be removed too.`)) return;
+      if(!confirm(`Delete ${c.name} (${c.id})?\nTheir stock and promo lists will be removed too.`)) return;
       db.clients = db.clients.filter(x => x !== c); save(); toast('Client deleted'); location.hash = '#/clients';
     }
   });
@@ -364,12 +396,18 @@ function viewClient(id){
   const c = getClient(id);
   if(!c){ view.innerHTML = backbar('#/clients', 'Clients') + `<div class="empty"><b>Client not found</b>It may have been deleted or renamed.</div>`; return; }
   let q = '';
+  const dayChips = c.days.length ? `<div class="chips">${c.days.length === 7 ? '<span class="chip">Daily</span>' : c.days.map(i => `<span class="chip">${DAYS[i]}</span>`).join('')}</div>` : '';
+  const prs = c.promos.map(it => ({it, p:getPromo(it.promoId)})).sort((a, b) => cmp(a.it.promoId, b.it.promoId));
   view.innerHTML = backbar('#/clients', 'Clients', `<button class="link-btn" id="edit">Edit</button>`)
-    + `<section class="hero"><span class="idb lg">${esc(c.id)}</span><h1>${esc(c.name || '(no name)')}</h1>`
-    + (c.days.length ? `<div class="chips">${c.days.length === 7 ? '<span class="chip">Delivery daily</span>' : c.days.map(i => `<span class="chip">${DAYS[i]}</span>`).join('')}</div>` : '')
+    + `<section class="hero"><div class="idrow"><span class="idb lg">${esc(c.id)}</span>${dayChips}</div><h1>${esc(c.name || '(no name)')}</h1>`
     + (c.phone ? `<a class="meta" href="tel:${esc(c.phone.replace(/[^\d+]/g, ''))}">${I.phone}${esc(c.phone)}</a>` : '')
     + (c.notes ? `<p class="notes">${esc(c.notes)}</p>` : '') + `</section>`
-    + `<button class="primary" id="addStock">${I.plus} Add stock</button>`
+    + `<div class="btn2"><button class="primary" id="addStock">${I.plus} Add stock</button><button class="primary alt" id="addPromo">${I.plus} Add promo</button></div>`
+    + `<div class="sec-h"><span>Promos · ${prs.length}</span></div>`
+    + (prs.length ? `<div class="list" id="promos">${prs.map(({it, p}) => {
+        const sub = [p ? plural(p.stockIds.length, 'stock item') : '', it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
+        return `<button class="row" data-pid="${esc(it.promoId)}"><span class="idb pr">${esc(it.promoId)}</span><span class="main"><span class="name">${p ? esc(p.name || '(no name)') : '<i>Promo deleted</i>'}</span>${sub ? `<span class="sub">${sub}</span>` : ''}</span>${p && !p.active ? '<span class="tag">Inactive</span>' : ''}${I.chev}</button>`;
+      }).join('')}</div>` : `<div class="empty sm">No promos for this client.</div>`)
     + `<div class="sec-h"><span>Stock ordered · ${c.items.length}</span></div>`
     + (c.items.length > 8 ? `<div style="margin-top:8px">${searchBox('qi', 'Filter this client’s stock', '')}</div>` : '')
     + `<div id="items"></div>`;
@@ -378,7 +416,7 @@ function viewClient(id){
       .filter(({it, s}) => match(q, it.stockId, s?.name, s?.brand, s?.unit, it.note))
       .sort((a, b) => cmp(a.it.stockId, b.it.stockId));
     $('#items').innerHTML = !c.items.length
-      ? `<div class="empty">No stock linked yet.<br>Tap <b style="display:inline;font-size:inherit">Add stock</b> to pick from your stock list.</div>`
+      ? `<div class="empty sm">No stock linked yet. Tap <b style="display:inline;font-size:inherit">Add stock</b> to pick from your stock list.</div>`
       : !rows.length ? `<div class="empty">Nothing matches “${esc(q)}”</div>`
       : `<div class="list">${rows.map(({it, s}) => {
           const sub = [s?.brand, s?.unit, it.note, it.added ? 'since ' + fmtDate(it.added) : ''].filter(Boolean).map(esc).join(' · ');
@@ -387,12 +425,31 @@ function viewClient(id){
   };
   $('#edit').onclick = () => clientForm(c);
   $('#addStock').onclick = () => pickStock(c);
+  $('#addPromo').onclick = () => pickPromo(c);
   const qi = $('#qi'); if(qi) qi.addEventListener('input', e => { q = e.target.value; draw(); });
   $('#items').addEventListener('click', e => {
     const r = e.target.closest('.row[data-sid]'); if(!r) return;
     const it = c.items.find(i => i.stockId === r.dataset.sid); if(it) itemSheet(c, it);
   });
+  const pl = $('#promos'); if(pl) pl.addEventListener('click', e => {
+    const r = e.target.closest('.row[data-pid]'); if(!r) return;
+    const it = c.promos.find(i => i.promoId === r.dataset.pid); if(it) clientPromoSheet(c, it);
+  });
   draw();
+}
+
+function clientPromoSheet(c, it){
+  const p = getPromo(it.promoId);
+  const elig = p ? p.stockIds.map(sid => ({sid, s:getStock(sid)})).sort((a, b) => cmp(a.sid, b.sid)) : [];
+  formSheet({
+    title: p ? p.name || it.promoId : it.promoId,
+    fields: [{k:'note', label:'Note', value: it.note, area:true, ph:'e.g. agreed price, start date…'}],
+    extra: `<p class="sheet-note">Promo ID ${esc(it.promoId)}${p ? ` · ${p.active ? 'Active' : 'Inactive'} · <a href="#/promo/${enc(p.id)}">View promo</a>` : ''}${it.added ? ' · added ' + fmtDate(it.added) : ''}</p>`
+      + (elig.length ? `<div class="sec-h"><span>Stock in this promo · ${elig.length}</span></div><div class="list mini">${elig.map(({sid, s}) => `<div class="row"><span class="idb">${esc(sid)}</span><span class="main"><span class="name">${s ? esc(s.name || '(no name)') : '<i>Stock item deleted</i>'}</span>${s && stockSub(s) ? `<span class="sub">${esc(stockSub(s))}</span>` : ''}</span></div>`).join('')}</div>` : ''),
+    onSave: v => { it.note = v.note; save(); route(); toast('Saved'); },
+    deleteLabel: 'Remove promo from this client',
+    onDelete: () => { c.promos = c.promos.filter(x => x !== it); save(); route(); toast('Removed'); }
+  });
 }
 
 function itemSheet(c, it){
@@ -407,20 +464,19 @@ function itemSheet(c, it){
   });
 }
 
-function pickStock(c){
-  const have = new Set(c.items.map(i => i.stockId)), sel = new Set();
+function pickList({title, items, have, ph, empty, sub, onAdd}){
+  const sel = new Set();
   let q = '';
-  openSheet(`<div class="sh"><button class="link-btn l" data-x>Cancel</button><b>Add stock</b><button class="link-btn r" id="padd" disabled>Add</button></div>
-    <div class="sb">${searchBox('pq', 'Search stock ID or name', '')}<div id="plist"></div></div>`);
+  openSheet(`<div class="sh"><button class="link-btn l" data-x>Cancel</button><b>${esc(title)}</b><button class="link-btn r" id="padd" disabled>Add</button></div>
+    <div class="sb">${searchBox('pq', ph, '')}<div id="plist"></div></div>`);
   const btn = $('#padd');
   const sync = () => { btn.disabled = !sel.size; btn.textContent = sel.size ? `Add (${sel.size})` : 'Add'; };
   const draw = () => {
-    const rows = db.stock.filter(s => match(q, s.id, s.name, s.brand, s.unit)).sort(byId);
-    $('#plist').innerHTML = !db.stock.length
-      ? `<div class="empty"><b>No stock items yet</b>Add items in the <a href="#/stock">Stock</a> tab first.</div>`
-      : !rows.length ? `<div class="empty">No stock matches “${esc(q)}”</div>`
-      : `<div class="list">${rows.map(s => { const h = have.has(s.id), on = sel.has(s.id);
-          return `<button class="row${on ? ' on' : ''}" data-id="${esc(s.id)}"${h ? ' disabled' : ''}><span class="ck">${on || h ? I.check : ''}</span><span class="idb">${esc(s.id)}</span><span class="main"><span class="name">${esc(s.name || '(no name)')}</span>${s.brand || s.unit ? `<span class="sub">${esc([s.brand, s.unit].filter(Boolean).join(' · '))}</span>` : ''}</span>${h ? '<span class="tag">Added</span>' : ''}</button>`;
+    const rows = items.filter(x => match(q, x.id, x.name, sub(x))).sort(byId);
+    $('#plist').innerHTML = !items.length ? `<div class="empty">${empty}</div>`
+      : !rows.length ? `<div class="empty">Nothing matches “${esc(q)}”</div>`
+      : `<div class="list">${rows.map(x => { const h = have.has(x.id), on = sel.has(x.id), sb = sub(x);
+          return `<button class="row${on ? ' on' : ''}" data-id="${esc(x.id)}"${h ? ' disabled' : ''}><span class="ck">${on || h ? I.check : ''}</span><span class="idb">${esc(x.id)}</span><span class="main"><span class="name">${esc(x.name || '(no name)')}</span>${sb ? `<span class="sub">${esc(sb)}</span>` : ''}</span>${h ? '<span class="tag">Added</span>' : ''}</button>`;
         }).join('')}</div>`;
   };
   $('#pq').addEventListener('input', e => { q = e.target.value; draw(); });
@@ -431,12 +487,19 @@ function pickStock(c){
     r.classList.toggle('on', sel.has(id)); r.querySelector('.ck').innerHTML = sel.has(id) ? I.check : '';
     sync();
   });
-  btn.onclick = () => {
-    const d = localDate();
-    sel.forEach(id => c.items.push({stockId:id, note:'', added:d}));
-    save(); const n = sel.size; route(); toast(`Added ${plural(n, 'item')}`);
-  };
+  btn.onclick = () => { const msg = onAdd([...sel]); save(); route(); toast(msg); };
   draw();
+}
+function pickStock(c){
+  pickList({title:'Add stock', items:db.stock, have:new Set(c.items.map(i => i.stockId)), ph:'Search stock ID or name',
+    empty:'<b>No stock items yet</b>Add items in the <a href="#/stock">Stock</a> tab first.', sub:stockSub,
+    onAdd: ids => { const d = localDate(); ids.forEach(id => c.items.push({stockId:id, note:'', added:d})); return `Added ${plural(ids.length, 'item')}`; }});
+}
+function pickPromo(c){
+  pickList({title:'Add promo', items:db.promos.filter(p => p.active), have:new Set(c.promos.map(i => i.promoId)), ph:'Search promo ID or name',
+    empty: db.promos.length ? '<b>No active promos</b>Switch a promo on in the <a href="#/promo">Promo</a> tab.' : '<b>No promos yet</b>Create one in the <a href="#/promo">Promo</a> tab first.',
+    sub: p => plural(p.stockIds.length, 'stock item'),
+    onAdd: ids => { const d = localDate(); ids.forEach(id => c.promos.push({promoId:id, note:'', added:d})); return `Added ${plural(ids.length, 'promo')}`; }});
 }
 
 /* ---------- stock ---------- */
@@ -483,16 +546,19 @@ function stockForm(s){
         db.stock.push({id:v.id, name:v.name, brand:v.brand, unit:v.unit, notes:v.notes}); save(); route(); toast('Stock item added');
       } else {
         const oldId = s.id;
-        if(oldId !== v.id) db.clients.forEach(c => c.items.forEach(i => { if(i.stockId === oldId) i.stockId = v.id; }));
+        if(oldId !== v.id){ db.clients.forEach(c => c.items.forEach(i => { if(i.stockId === oldId) i.stockId = v.id; }));
+          db.promos.forEach(p => p.stockIds = p.stockIds.map(x => x === oldId ? v.id : x)); }
         Object.assign(s, {id:v.id, name:v.name, brand:v.brand, unit:v.unit, notes:v.notes}); save(); toast('Saved');
         if(oldId !== v.id && location.hash.startsWith('#/stock/')) location.replace('#/stock/' + enc(v.id)); else route();
       }
     },
     onDelete: isNew ? null : () => {
-      const n = usage(s.id).length;
-      if(!confirm(`Delete ${s.name} (${s.id})?` + (n ? `\nIt will also be removed from ${plural(n, 'client')}.` : ''))) return;
+      const n = usage(s.id).length, np = db.promos.filter(p => p.stockIds.includes(s.id)).length;
+      const also = [n ? plural(n, 'client') : '', np ? plural(np, 'promo') : ''].filter(Boolean).join(' and ');
+      if(!confirm(`Delete ${s.name} (${s.id})?` + (also ? `\nIt will also be removed from ${also}.` : ''))) return;
       db.stock = db.stock.filter(x => x !== s);
       db.clients.forEach(c => c.items = c.items.filter(i => i.stockId !== s.id));
+      db.promos.forEach(p => p.stockIds = p.stockIds.filter(x => x !== s.id));
       save(); toast('Stock item deleted'); location.hash = '#/stock';
     }
   });
@@ -502,7 +568,7 @@ function viewStockItem(id){
   setTab('stock');
   const s = getStock(id);
   if(!s){ view.innerHTML = backbar('#/stock', 'Stock') + `<div class="empty"><b>Stock item not found</b>It may have been deleted or renamed.</div>`; return; }
-  const cl = usage(s.id).sort(byId);
+  const cl = usage(s.id).sort(byId), inPromos = db.promos.filter(p => p.stockIds.includes(s.id)).sort(byId);
   view.innerHTML = backbar('#/stock', 'Stock', `<button class="link-btn" id="edit">Edit</button>`)
     + `<section class="hero"><span class="idb lg">${esc(s.id)}</span><h1>${esc(s.name || '(no name)')}</h1>`
     + (s.brand ? `<p class="notes">Brand: ${esc(s.brand)}</p>` : '') + (s.unit ? `<p class="notes">Unit: ${esc(s.unit)}</p>` : '') + (s.notes ? `<p class="notes">${esc(s.notes)}</p>` : '') + `</section>`
@@ -510,8 +576,105 @@ function viewStockItem(id){
     + (!cl.length ? `<div class="empty">No clients have this item yet.</div>`
       : `<div class="list">${cl.map(c => { const it = c.items.find(i => i.stockId === s.id);
           return `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span>${it.note ? `<span class="sub">${esc(it.note)}</span>` : ''}</span>${I.chev}</a>`;
-        }).join('')}</div>`);
+        }).join('')}</div>`)
+    + (inPromos.length ? `<div class="sec-h"><span>In promos · ${inPromos.length}</span></div><div class="list">${inPromos.map(p => `<a class="row" href="#/promo/${enc(p.id)}"><span class="idb pr">${esc(p.id)}</span><span class="main"><span class="name">${esc(p.name || '(no name)')}</span></span>${p.active ? '' : '<span class="tag">Inactive</span>'}${I.chev}</a>`).join('')}</div>` : '');
   $('#edit').onclick = () => stockForm(s);
+}
+
+/* ---------- promos ---------- */
+const promoClients = id => db.clients.filter(c => c.promos.some(i => i.promoId === id));
+
+function viewPromos(){
+  setTab('promo');
+  const seg = `<div class="dayf seg" id="pf">${[['all', 'All'], ['on', 'Active'], ['off', 'Inactive']].map(([k, l]) => `<button data-f="${k}" class="${state.pf === k ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  view.innerHTML = topbar('Promo', `<button class="icon-btn" id="add" aria-label="Add promo">${I.plus}</button>`, searchBox('q', 'Search promo ID or name', state.qp) + seg)
+    + `<div class="count" id="count"></div><div id="list"></div>`;
+  const draw = () => {
+    const cc = {}; db.clients.forEach(c => c.promos.forEach(i => cc[i.promoId] = (cc[i.promoId] || 0) + 1));
+    const rows = db.promos.filter(p => (state.pf === 'all' || (state.pf === 'on') === p.active) && match(state.qp, p.id, p.name, p.notes)).sort(byId);
+    const nOn = db.promos.filter(p => p.active).length;
+    $('#count').textContent = !db.promos.length ? '' : (state.qp || state.pf !== 'all' ? `${rows.length} of ${plural(db.promos.length, 'promo')}` : `${plural(db.promos.length, 'promo')} · ${nOn} active`);
+    $('#list').innerHTML = !db.promos.length
+      ? emptyHTML('No promos yet', 'Create a promo, then choose which<br>stock items can be used for it.', 'addEmpty', 'Add promo')
+      : !rows.length ? `<div class="empty">No promos match</div>`
+      : `<div class="list">${rows.map(p => `<a class="row" href="#/promo/${enc(p.id)}"><span class="idb pr">${esc(p.id)}</span><span class="main"><span class="name">${esc(p.name || '(no name)')}</span><span class="sub">${esc([plural(p.stockIds.length, 'stock item'), plural(cc[p.id] || 0, 'client')].join(' · '))}</span></span><span class="sw${p.active ? ' on' : ''}" role="switch" aria-checked="${p.active}" aria-label="Active" data-toggle="${esc(p.id)}"></span></a>`).join('')}</div>`;
+    const ae = $('#addEmpty'); if(ae) ae.onclick = () => promoForm(null);
+  };
+  $('#q').addEventListener('input', e => { state.qp = e.target.value; draw(); });
+  $('#pf').addEventListener('click', e => { const b = e.target.closest('button'); if(!b) return; state.pf = b.dataset.f;
+    $('#pf').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+  $('#list').addEventListener('click', e => { const t = e.target.closest('[data-toggle]'); if(!t) return; e.preventDefault();
+    const p = getPromo(t.dataset.toggle); if(!p) return; p.active = !p.active; save(); draw(); toast(`${p.name || p.id}: ${p.active ? 'active' : 'inactive'}`); });
+  $('#add').onclick = () => promoForm(null);
+  draw();
+}
+
+function promoForm(p){
+  const isNew = !p;
+  formSheet({
+    title: isNew ? 'New promo' : 'Edit promo', saveLabel: isNew ? 'Add' : 'Save',
+    fields: [
+      {k:'id', label:'Promo ID', value: isNew ? nextId(db.promos, 'P') : p.id, ac:'characters'},
+      {k:'name', label:'Name', value: p?.name || '', ph:'e.g. Hotpot season special'},
+      {k:'active', label:'Active', value: isNew ? true : p.active, toggle:true},
+      {k:'notes', label:'Details', value: p?.notes || '', area:true, ph:'Discount, price, dates, conditions…'}
+    ],
+    onSave: v => {
+      if(!v.id) return 'Promo ID is required';
+      if(!v.name) return 'Name is required';
+      const clash = getPromo(v.id);
+      if(clash && clash !== p) return `Promo ID ${v.id} is already used by ${clash.name}`;
+      if(isNew){
+        db.promos.push({id:v.id, name:v.name, active:v.active, stockIds:[], notes:v.notes});
+        save(); toast('Promo added — now add its stock items'); location.hash = '#/promo/' + enc(v.id);
+      } else {
+        const oldId = p.id;
+        if(oldId !== v.id) db.clients.forEach(c => c.promos.forEach(i => { if(i.promoId === oldId) i.promoId = v.id; }));
+        Object.assign(p, {id:v.id, name:v.name, active:v.active, notes:v.notes}); save(); toast('Saved');
+        if(oldId !== v.id && location.hash.startsWith('#/promo/')) location.replace('#/promo/' + enc(v.id)); else route();
+      }
+    },
+    onDelete: isNew ? null : () => {
+      const n = promoClients(p.id).length;
+      if(!confirm(`Delete promo ${p.name} (${p.id})?` + (n ? `\nIt will also be removed from ${plural(n, 'client')}.` : ''))) return;
+      db.promos = db.promos.filter(x => x !== p);
+      db.clients.forEach(c => c.promos = c.promos.filter(i => i.promoId !== p.id));
+      save(); toast('Promo deleted'); location.hash = '#/promo';
+    }
+  });
+}
+
+function viewPromo(id){
+  setTab('promo');
+  const p = getPromo(id);
+  if(!p){ view.innerHTML = backbar('#/promo', 'Promo') + `<div class="empty"><b>Promo not found</b>It may have been deleted or renamed.</div>`; return; }
+  const items = p.stockIds.map(sid => ({sid, s:getStock(sid)})).sort((a, b) => cmp(a.sid, b.sid));
+  const cl = promoClients(p.id).sort(byId);
+  view.innerHTML = backbar('#/promo', 'Promo', `<button class="link-btn" id="edit">Edit</button>`)
+    + `<section class="hero"><div class="idrow"><span class="idb lg pr">${esc(p.id)}</span><button class="swl${p.active ? ' on' : ''}" id="tog" role="switch" aria-checked="${p.active}">${p.active ? 'Active' : 'Inactive'}<span class="sw${p.active ? ' on' : ''}"></span></button></div>`
+    + `<h1>${esc(p.name || '(no name)')}</h1>` + (p.notes ? `<p class="notes">${esc(p.notes)}</p>` : '') + `</section>`
+    + `<button class="primary" id="addStock">${I.plus} Add stock to promo</button>`
+    + `<div class="sec-h"><span>Stock for this promo · ${items.length}</span></div>`
+    + (items.length ? `<div class="list" id="pitems">${items.map(({sid, s}) => `<button class="row" data-sid="${esc(sid)}"><span class="idb">${esc(sid)}</span><span class="main"><span class="name">${s ? esc(s.name || '(no name)') : '<i>Stock item deleted</i>'}</span>${s && stockSub(s) ? `<span class="sub">${esc(stockSub(s))}</span>` : ''}</span>${I.chev}</button>`).join('')}</div>`
+      : `<div class="empty sm">No stock in this promo yet. Tap <b style="display:inline;font-size:inherit">Add stock to promo</b>.</div>`)
+    + `<div class="sec-h"><span>Clients on this promo · ${cl.length}</span></div>`
+    + (cl.length ? `<div class="list">${cl.map(c => { const it = c.promos.find(i => i.promoId === p.id);
+        return `<a class="row" href="#/client/${enc(c.id)}"><span class="idb">${esc(c.id)}</span><span class="main"><span class="name">${esc(c.name || '(no name)')}</span>${it.note ? `<span class="sub">${esc(it.note)}</span>` : ''}</span>${I.chev}</a>`; }).join('')}</div>`
+      : `<div class="empty sm">No clients on this promo yet. Add it from a client’s page.</div>`);
+  $('#edit').onclick = () => promoForm(p);
+  $('#tog').onclick = () => { p.active = !p.active; save(); route(); toast(p.active ? 'Promo is active' : 'Promo is inactive'); };
+  $('#addStock').onclick = () => pickList({title:'Add stock to promo', items:db.stock, have:new Set(p.stockIds), ph:'Search stock ID or name',
+    empty:'<b>No stock items yet</b>Add items in the <a href="#/stock">Stock</a> tab first.', sub:stockSub,
+    onAdd: ids => { p.stockIds.push(...ids); return `Added ${plural(ids.length, 'item')} to promo`; }});
+  const pi = $('#pitems'); if(pi) pi.addEventListener('click', e => { const r = e.target.closest('.row[data-sid]'); if(r) promoStockSheet(p, r.dataset.sid); });
+}
+
+function promoStockSheet(p, sid){
+  const s = getStock(sid);
+  openSheet(`<div class="sh"><button class="link-btn l" data-x>Close</button><b>${esc(s ? s.name || sid : sid)}</b><span></span></div>
+    <div class="sb"><p class="sheet-note" style="padding-top:0">Stock ID ${esc(sid)}${s && stockSub(s) ? ' · ' + esc(stockSub(s)) : ''}${s ? ` · <a href="#/stock/${enc(s.id)}">View stock item</a>` : ''}</p>
+    <button class="danger-btn" id="rm">Remove from this promo</button></div>`);
+  $('#rm').onclick = () => { p.stockIds = p.stockIds.filter(x => x !== sid); save(); route(); toast('Removed from promo'); };
 }
 
 /* ---------- import / export ---------- */
@@ -520,32 +683,37 @@ function getLast(){ try{ return localStorage.getItem(LAST); }catch(e){ return nu
 
 function viewData(){
   setTab('data');
-  const nItems = db.clients.reduce((n, c) => n + c.items.length, 0);
   const last = getLast();
   const showTip = navigator.standalone === false && /iPhone|iPad|iPod/.test(navigator.userAgent);
   view.innerHTML = topbar('Import / Export')
     + (showTip ? `<div class="tip"><b>Install on your iPhone:</b> tap the Share button in Safari, then <b>Add to Home Screen</b>.</div>` : '')
-    + `<div class="stats"><div class="stat"><b>${db.clients.length}</b><span>Clients</span></div><div class="stat"><b>${db.stock.length}</b><span>Stock items</span></div><div class="stat"><b>${nItems}</b><span>Client–stock links</span></div></div>`
+    + `<div class="stats"><div class="stat"><b>${db.clients.length}</b><span>Clients</span></div><div class="stat"><b>${db.stock.length}</b><span>Stock items</span></div><div class="stat"><b>${db.promos.length}</b><span>Promos</span></div></div>`
     + `<p class="help">Data is saved on this device only. Last full backup: <b>${last ? fmtDate(last) : 'never'}</b>. Export a backup regularly and keep it in Files / iCloud Drive.</p>`
     + `<div class="sec-h">Export</div><div class="list">`
     + actRow('exp-json', 'Full backup', 'JSON · everything, restore on any device')
     + actRow('exp-clients', 'Clients', 'CSV · opens in Excel or Numbers')
     + actRow('exp-stock', 'Stock list', 'CSV')
     + actRow('exp-orders', 'Client orders', 'CSV · one row per client + stock item')
+    + actRow('exp-promos', 'Promos', 'CSV · with their stock items')
+    + actRow('exp-cpromos', 'Client promos', 'CSV · one row per client + promo')
     + `</div><div class="sec-h">Import</div><div class="list">`
     + actRow('imp-json', 'Restore full backup', 'JSON · replaces all current data')
     + actRow('imp-clients', 'Import clients', 'CSV · adds new, updates matching IDs')
     + actRow('imp-stock', 'Import stock', 'CSV · adds new, updates matching IDs')
     + actRow('imp-orders', 'Import client orders', 'CSV · links stock items to clients')
+    + actRow('imp-promos', 'Import promos', 'CSV · adds new, updates matching IDs')
+    + actRow('imp-cpromos', 'Import client promos', 'CSV · links promos to clients')
     + `</div><p class="help">CSV columns (first row must be headers):<br>
       <b>Clients:</b> <code>customer_id, name, phone, delivery_days, notes</code> — delivery days like <code>Mon Wed Fri</code> or <code>Daily</code><br>
       <b>Stock:</b> <code>stock_id, name, brand, unit, notes</code><br>
       <b>Orders:</b> <code>customer_id, stock_id, note</code> — may also include <code>customer_name</code> and <code>stock_name</code>; any missing clients or stock items are created.<br>
+      <b>Promos:</b> <code>promo_id, name, active, stock_ids, notes</code> — active is <code>Yes</code>/<code>No</code>; stock IDs separated by <code>;</code> e.g. <code>S001;S004</code><br>
+      <b>Client promos:</b> <code>customer_id, promo_id, note</code><br>
       Tip: export a CSV first to get a ready-made template.</p>`
     + `<div class="sec-h">Other</div><div class="list">`
-    + (!db.clients.length && !db.stock.length ? actRow('demo', 'Load sample data', 'To try the app out') : '')
+    + (!db.clients.length && !db.stock.length && !db.promos.length ? actRow('demo', 'Load sample data', 'To try the app out') : '')
     + actRow('wipe', 'Erase all data', '', true)
-    + `</div><p class="help center">ClientBook v1.1</p>
+    + `</div><p class="help center">ClientBook v1.2</p>
       <input type="file" id="file" hidden accept=".csv,.json,.txt,text/csv,application/json,text/plain">`;
 
   let pending = null;
@@ -566,13 +734,19 @@ function viewData(){
     'exp-orders': () => { const rows = [['customer_id','customer_name','delivery_days','stock_id','stock_name','brand','unit','note','added']];
       [...db.clients].sort(byId).forEach(c => [...c.items].sort((a, b) => cmp(a.stockId, b.stockId)).forEach(i => { const s = getStock(i.stockId); rows.push([c.id, c.name, fmtDays(c.days), i.stockId, s?.name, s?.brand, s?.unit, i.note, i.added]); }));
       saveFile(`clientbook-orders-${stamp}.csv`, toCSV(rows), 'text/csv'); },
+    'exp-promos': () => saveFile(`clientbook-promos-${stamp}.csv`, toCSV([['promo_id','name','active','stock_ids','notes'], ...[...db.promos].sort(byId).map(p => [p.id, p.name, p.active ? 'Yes' : 'No', [...p.stockIds].sort(cmp).join(';'), p.notes])]), 'text/csv'),
+    'exp-cpromos': () => { const rows = [['customer_id','customer_name','promo_id','promo_name','active','note','added']];
+      [...db.clients].sort(byId).forEach(c => [...c.promos].sort((a, b) => cmp(a.promoId, b.promoId)).forEach(i => { const p = getPromo(i.promoId); rows.push([c.id, c.name, i.promoId, p?.name, p ? (p.active ? 'Yes' : 'No') : '', i.note, i.added]); }));
+      saveFile(`clientbook-client-promos-${stamp}.csv`, toCSV(rows), 'text/csv'); },
+    'imp-promos': () => pick(t => importPromos(readTable(t))),
+    'imp-cpromos': () => pick(t => importClientPromos(readTable(t))),
     'imp-json': () => pick(importJSON),
     'imp-clients': () => pick(t => importClients(readTable(t))),
     'imp-stock': () => pick(t => importStock(readTable(t))),
     'imp-orders': () => pick(t => importOrders(readTable(t))),
     'demo': loadDemo,
-    'wipe': () => { if(!confirm('Erase ALL clients and stock from this device?\nThis cannot be undone — export a backup first if unsure.')) return;
-      db = {v:2, clients:[], stock:[]}; save(); route(); toast('All data erased'); }
+    'wipe': () => { if(!confirm('Erase ALL clients, stock and promos from this device?\nThis cannot be undone — export a backup first if unsure.')) return;
+      db = {v:2, clients:[], stock:[], promos:[]}; save(); route(); toast('All data erased'); }
   };
   view.querySelectorAll('[data-a]').forEach(b => b.onclick = () => A[b.dataset.a]());
 }
@@ -624,7 +798,9 @@ const AL = {
   cname: ['customername','clientname','customer','client','客戶名稱','客戶'],
   sname: ['stockname','itemname','productname','item','product','description','貨品名稱','貨品'],
   name: ['name','名稱'], phone: ['phone','tel','telephone','mobile','contact','電話'], unit: ['unit','uom','單位'], brand: ['brand','brandname','packer','品牌','牌子'], days: ['deliverydays','deliveryday','delivery','days','送貨日','送貨日期'],
-  notes: ['notes','note','remarks','remark','comment','comments','備註'], added: ['added','date','since']
+  notes: ['notes','note','remarks','remark','comment','comments','備註','details'], added: ['added','date','since'],
+  pid: ['promoid','promocode','promotionid','promotioncode','promo','promotion','優惠編號'], pname: ['promoname','promotionname','優惠名稱','優惠'],
+  active: ['active','status','enabled','狀態'], sids: ['stockids','stockid','stockitems','items','stock','eligiblestock','貨品編號']
 };
 const getter = r => i => i < 0 ? '' : String(r[i] ?? '').trim();
 
@@ -635,7 +811,7 @@ function importClients(t){
   for(const r of t.rows){ const g = getter(r), id = g(ci); if(!id){ skip++; continue; }
     const c = getClient(id);
     if(c){ if(g(ni)) c.name = g(ni); if(g(pi)) c.phone = g(pi); if(g(di)) c.days = parseDays(g(di)); if(g(oi)) c.notes = g(oi); upd++; }
-    else { db.clients.push({id, name:g(ni), phone:g(pi), days:parseDays(g(di)), notes:g(oi), items:[]}); add++; } }
+    else { db.clients.push({id, name:g(ni), phone:g(pi), days:parseDays(g(di)), notes:g(oi), items:[], promos:[]}); add++; } }
   save(); route(); toast(`Clients: ${add} added, ${upd} updated${skip ? `, ${skip} skipped (no ID)` : ''}`, 4000);
 }
 function importStock(t){
@@ -654,7 +830,7 @@ function importOrders(t){
   let link = 0, dup = 0, newC = 0, newS = 0, skip = 0;
   const cMap = new Map(db.clients.map(c => [c.id, c])), sMap = new Map(db.stock.map(s => [s.id, s]));
   for(const r of t.rows){ const g = getter(r), cid = g(ci), sid = g(si); if(!cid || !sid){ skip++; continue; }
-    let c = cMap.get(cid); if(!c){ c = {id:cid, name:g(cn), phone:'', days:parseDays(g(dd)), notes:'', items:[]}; db.clients.push(c); cMap.set(cid, c); newC++; } else if(!c.name && g(cn)) c.name = g(cn);
+    let c = cMap.get(cid); if(!c){ c = {id:cid, name:g(cn), phone:'', days:parseDays(g(dd)), notes:'', items:[], promos:[]}; db.clients.push(c); cMap.set(cid, c); newC++; } else if(!c.name && g(cn)) c.name = g(cn);
     let s = sMap.get(sid); if(!s){ s = {id:sid, name:g(sn), brand:g(bi), unit:g(ui), notes:''}; db.stock.push(s); sMap.set(sid, s); newS++; }
     const ex = c.items.find(i => i.stockId === sid);
     if(ex){ dup++; if(g(ni)) ex.note = g(ni); }
@@ -662,11 +838,38 @@ function importOrders(t){
   save(); route();
   toast(`Orders: ${link} linked${dup ? `, ${dup} already there` : ''}${newC ? `, ${newC} new clients` : ''}${newS ? `, ${newS} new stock` : ''}${skip ? `, ${skip} skipped` : ''}`, 4500);
 }
+const parseActive = v => !/^(no|n|false|0|inactive|off|disabled|否|停用)$/i.test(String(v).trim());
+function importPromos(t){
+  const H = t.head, pi = col(H, [...AL.pid, 'id', 'code', 'no', '編號']), ni = col(H, [...AL.name, ...AL.pname]), ai = col(H, AL.active), si = col(H, AL.sids), oi = col(H, AL.notes);
+  if(pi < 0) return toast('No promo ID column found. The first row should include "promo_id".', 4500);
+  let add = 0, upd = 0, skip = 0, newS = 0;
+  for(const r of t.rows){ const g = getter(r), id = g(pi); if(!id){ skip++; continue; }
+    const sids = g(si) ? [...new Set(g(si).split(/[;,|\/\s]+/).map(x => x.trim()).filter(Boolean))] : null;
+    if(sids) sids.forEach(sid => { if(!getStock(sid)){ db.stock.push({id:sid, name:'', brand:'', unit:'', notes:''}); newS++; } });
+    const p = getPromo(id);
+    if(p){ if(g(ni)) p.name = g(ni); if(g(ai)) p.active = parseActive(g(ai)); if(sids) p.stockIds = sids; if(g(oi)) p.notes = g(oi); upd++; }
+    else { db.promos.push({id, name:g(ni), active: g(ai) ? parseActive(g(ai)) : true, stockIds: sids || [], notes:g(oi)}); add++; } }
+  save(); route(); toast(`Promos: ${add} added, ${upd} updated${newS ? `, ${newS} new stock IDs created` : ''}${skip ? `, ${skip} skipped (no ID)` : ''}`, 4500);
+}
+function importClientPromos(t){
+  const H = t.head, ci = col(H, AL.cid), pi = col(H, AL.pid), cn = col(H, AL.cname), pn = col(H, AL.pname), ni = col(H, AL.notes), di = col(H, AL.added);
+  if(ci < 0 || pi < 0) return toast('Need both "customer_id" and "promo_id" columns in the first row.', 4500);
+  let link = 0, dup = 0, newC = 0, newP = 0, skip = 0;
+  for(const r of t.rows){ const g = getter(r), cid = g(ci), pid = g(pi); if(!cid || !pid){ skip++; continue; }
+    let c = getClient(cid); if(!c){ c = {id:cid, name:g(cn), phone:'', days:[], notes:'', items:[], promos:[]}; db.clients.push(c); newC++; }
+    if(!getPromo(pid)){ db.promos.push({id:pid, name:g(pn), active:true, stockIds:[], notes:''}); newP++; }
+    const ex = c.promos.find(i => i.promoId === pid);
+    if(ex){ dup++; if(g(ni)) ex.note = g(ni); }
+    else { c.promos.push({promoId:pid, note:g(ni), added:g(di) || localDate()}); link++; } }
+  save(); route();
+  toast(`Client promos: ${link} linked${dup ? `, ${dup} already there` : ''}${newC ? `, ${newC} new clients` : ''}${newP ? `, ${newP} new promos` : ''}${skip ? `, ${skip} skipped` : ''}`, 4500);
+}
 function importJSON(text){
   let d; try{ d = JSON.parse(text.replace(/^﻿/, '')); }catch(e){ return toast('That is not a valid backup file'); }
   if(!d || !Array.isArray(d.clients) || !Array.isArray(d.stock)) return toast('That is not a ClientBook backup');
   const clean = normalizeDB(d);
-  if(!confirm(`Replace current data (${plural(db.clients.length, 'client')}, ${plural(db.stock.length, 'stock item')})\nwith this backup (${plural(clean.clients.length, 'client')}, ${plural(clean.stock.length, 'stock item')})?`)) return;
+  const sum = x => `${plural(x.clients.length, 'client')}, ${plural(x.stock.length, 'stock item')}, ${plural(x.promos.length, 'promo')}`;
+  if(!confirm(`Replace current data (${sum(db)})\nwith this backup (${sum(clean)})?`)) return;
   db = clean; save(); route(); toast('Backup restored');
 }
 
@@ -679,11 +882,16 @@ function loadDemo(){
       ['S007','Chicken thigh, boneless','Brand D','kg'],['S008','Goat leg (Australia)','Brand B','kg'],['S009','Minced beef','House cut','kg'],['S010','Beef tendon','Brand A','kg']
     ].map(([id, name, brand, unit]) => ({id, name, brand, unit})),
     clients: [
-      {id:'C001', name:'Golden Pot Hotpot', phone:'2345 6789', days:[0,3], items:['S003','S004','S010','S005'].map(s => ({stockId:s, added:d}))},
+      {id:'C001', name:'Golden Pot Hotpot', phone:'2345 6789', days:[0,3], items:['S003','S004','S010','S005'].map(s => ({stockId:s, added:d})), promos:[{promoId:'P001', added:d, note:'Until end of Dec'}]},
       {id:'C002', name:'Sunrise Cha Chaan Teng', phone:'2876 5432', days:[0,1,2,3,4,5], items:['S007','S009','S006'].map(s => ({stockId:s, added:d, note: s === 'S006' ? '20 kg weekly' : ''}))},
       {id:'C003', name:'Harbour View Cantonese Restaurant', days:[1,4], items:['S001','S002','S010','S008'].map(s => ({stockId:s, added:d}))},
-      {id:'C004', name:'Lucky Star Wholesale', days:[0,1,2,3,4,5,6], items:['S005','S006','S001'].map(s => ({stockId:s, added:d}))},
+      {id:'C004', name:'Lucky Star Wholesale', days:[0,1,2,3,4,5,6], items:['S005','S006','S001'].map(s => ({stockId:s, added:d})), promos:[{promoId:'P002', added:d}, {promoId:'P003', added:d}]},
       {id:'C005', name:'Kowloon Noodle House', days:[2,5], items:['S002','S004'].map(s => ({stockId:s, added:d}))}
+    ],
+    promos: [
+      {id:'P001', name:'Hotpot season special', active:true, stockIds:['S003','S004','S010'], notes:'5% off 20 kg+'},
+      {id:'P002', name:'Chicken bulk deal', active:true, stockIds:['S005','S006','S007'], notes:'Free delivery on 50 kg+'},
+      {id:'P003', name:'Summer BBQ', active:false, stockIds:['S001','S002','S008']}
     ]
   });
   save(); location.hash = '#/clients'; route(); toast('Sample data loaded');

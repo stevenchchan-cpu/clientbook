@@ -1,5 +1,5 @@
 // Network-first service worker: always tries for the latest version, falls back to cache offline.
-const CACHE = 'clientbook-v2';
+const CACHE = 'clientbook-v3';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
